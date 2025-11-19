@@ -1,0 +1,5 @@
+{
+  "name": "NeuroSync: Cyberpunk AI Aggregator",
+  "description": "A client-side AI aggregator that streams responses from multiple LLMs in parallel and synthesizes a consensus answer using a neural engine. Features a high-fidelity cyberpunk aesthetic.",
+  "requestFramePermissions": []
+}

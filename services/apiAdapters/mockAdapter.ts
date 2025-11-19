@@ -1,9 +1,5 @@
-import { ModelResponse, ModelStatus, ModelProvider } from "../../types";
 
-// In a real production app, these would be individual files (openaiAdapter.ts, etc.)
-// interacting with their respective APIs. Due to CORS restrictions on calling 
-// OpenAI/Anthropic directly from browser without a proxy, and to allow this demo 
-// to work immediately, we use a sophisticated simulation.
+import { ModelResponse, ModelStatus, ModelProvider } from "../../types";
 
 const SIMULATED_RESPONSES = [
   "Based on my analysis of the vector space, I concur with the premise.",
@@ -18,15 +14,18 @@ export const streamMock = async (
   prompt: string,
   onUpdate: (data: Partial<ModelResponse>) => void
 ) => {
+  let isActive = true;
   onUpdate({ status: ModelStatus.CONNECTING, text: '', progress: 5 });
   
   // Artificial connection delay
   await new Promise(r => setTimeout(r, 800 + Math.random() * 1000));
 
+  if (!isActive) return;
+
   const startTime = Date.now();
   onUpdate({ status: ModelStatus.STREAMING, progress: 10 });
 
-  // Generate a pseudo-random response based on prompt length to seem dynamic
+  // Generate a pseudo-random response based on prompt length
   const seed = prompt.length % SIMULATED_RESPONSES.length;
   const baseResponse = `[${provider} PROTOCOL]: Processing query "${prompt.substring(0, 15)}..."\n\n`;
   const content = SIMULATED_RESPONSES[seed] + " " + SIMULATED_RESPONSES[(seed + 1) % SIMULATED_RESPONSES.length];
@@ -37,23 +36,37 @@ export const streamMock = async (
   let currentText = '';
   const chars = fullText.split('');
   
+  // Mock Timeout Safety
+  const safetyTimer = setTimeout(() => {
+     isActive = false;
+     onUpdate({ status: ModelStatus.TIMEOUT, error: 'Mock Timeout' });
+  }, 60000);
+
   for (let i = 0; i < chars.length; i++) {
+    if (!isActive) break;
+
     currentText += chars[i];
     
     // Random streaming speed variation
     if (i % 3 === 0) await new Promise(r => setTimeout(r, 20)); 
     
-    onUpdate({ 
-      text: currentText,
-      latency: Date.now() - startTime,
-      progress: 10 + (i / chars.length) * 90
-    });
+    if (isActive) {
+        onUpdate({ 
+        text: currentText,
+        latency: Date.now() - startTime,
+        progress: 10 + (i / chars.length) * 90
+        });
+    }
   }
 
-  onUpdate({ 
-    status: ModelStatus.COMPLETED, 
-    text: currentText, 
-    progress: 100,
-    latency: Date.now() - startTime 
-  });
+  clearTimeout(safetyTimer);
+
+  if (isActive) {
+    onUpdate({ 
+        status: ModelStatus.COMPLETED, 
+        text: currentText, 
+        progress: 100,
+        latency: Date.now() - startTime 
+    });
+  }
 };

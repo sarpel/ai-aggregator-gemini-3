@@ -1,14 +1,17 @@
-import React, { useReducer, useEffect } from 'react';
-import { AppState, AppAction, ModelProvider, ModelStatus } from './types';
+
+import React, { useReducer, useEffect, useRef } from 'react';
+import { AppState, AppAction, ModelProvider, ModelStatus, SynthesizerMode, ConsensusStatus } from './types';
 import { INITIAL_RESPONSE_STATE, AVAILABLE_MODELS } from './constants';
 import { streamGemini } from './services/apiAdapters/geminiAdapter';
 import { streamMock } from './services/apiAdapters/mockAdapter';
-import { generateConsensus } from './services/consensus/consensusEngine';
+import { streamCustomLLM } from './services/apiAdapters/customAdapter';
+import { generateHeuristicConsensus, prepareSynthesisPrompt } from './services/consensus/consensusEngine';
+import { GoogleGenAI } from "@google/genai";
 import StatusMatrix from './components/core/StatusMatrix';
 import ResponseViewer from './components/core/ResponseViewer';
 import CredentialManager from './components/core/CredentialManager';
 import CyberButton from './components/ui/CyberButton';
-import { Send, RotateCcw } from 'lucide-react';
+import { Send, RotateCcw, Trash2 } from 'lucide-react';
 
 const initialState: AppState = {
   apiKeyMap: {
@@ -29,10 +32,19 @@ const initialState: AppState = {
     [ModelProvider.DEEPSEEK]: INITIAL_RESPONSE_STATE(ModelProvider.DEEPSEEK),
   },
   consensus: {
+    status: ConsensusStatus.IDLE,
     text: '',
     confidence: 0,
     contributors: [],
-    isReady: false
+  },
+  synthesizerConfig: {
+    mode: SynthesizerMode.HEURISTIC,
+    provider: 'GEMINI',
+    systemInstruction: 'You are a Superintelligent Consensus Engine. Your goal is to synthesize the provided AI responses into a single, superior, "source of truth" answer. Resolve conflicts, verify facts, and merge insights.',
+    customEndpoint: 'http://localhost:11434/v1/chat/completions',
+    customModelName: 'llama3',
+    customApiKey: '',
+    customApiStyle: 'OPENAI'
   },
   history: []
 };
@@ -62,7 +74,7 @@ function reducer(state: AppState, action: AppAction): AppState {
         currentPrompt: action.payload,
         isProcessing: true,
         modelResponses: resetResponses,
-        consensus: { ...state.consensus, isReady: false, text: '' }
+        consensus: { ...state.consensus, status: ConsensusStatus.ANALYZING, text: '', contributors: [] }
       };
     case 'UPDATE_RESPONSE':
       const updatedModelResp = {
@@ -76,11 +88,34 @@ function reducer(state: AppState, action: AppAction): AppState {
           [action.payload.provider]: updatedModelResp
         }
       };
-    case 'SET_CONSENSUS':
+    case 'UPDATE_CONSENSUS':
       return {
         ...state,
-        isProcessing: false, // Assume finished when consensus is set (or handle separately)
-        consensus: action.payload
+        consensus: { ...state.consensus, ...action.payload }
+      };
+    case 'SET_SYNTHESIZER_CONFIG':
+        return {
+            ...state,
+            synthesizerConfig: { ...state.synthesizerConfig, ...action.payload }
+        };
+    case 'CLEAR_OUTPUTS':
+      return {
+        ...state,
+        currentPrompt: '',
+        isProcessing: false,
+        modelResponses: {
+            [ModelProvider.GEMINI]: INITIAL_RESPONSE_STATE(ModelProvider.GEMINI),
+            [ModelProvider.OPENAI]: INITIAL_RESPONSE_STATE(ModelProvider.OPENAI),
+            [ModelProvider.ANTHROPIC]: INITIAL_RESPONSE_STATE(ModelProvider.ANTHROPIC),
+            [ModelProvider.GROK]: INITIAL_RESPONSE_STATE(ModelProvider.GROK),
+            [ModelProvider.DEEPSEEK]: INITIAL_RESPONSE_STATE(ModelProvider.DEEPSEEK),
+        },
+        consensus: {
+            status: ConsensusStatus.IDLE,
+            text: '',
+            confidence: 0,
+            contributors: [],
+        }
       };
     case 'RESET_SESSION':
       return { ...initialState }; // Full purge
@@ -92,29 +127,93 @@ function reducer(state: AppState, action: AppAction): AppState {
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [promptInput, setPromptInput] = React.useState('');
+  const synthesisTriggeredRef = useRef(false);
 
-  // Consensus Polling/Trigger
+  // Watcher for Synthesis Trigger
   useEffect(() => {
-    if (!state.isProcessing) return;
+    if (!state.isProcessing) {
+        synthesisTriggeredRef.current = false;
+        return;
+    }
 
     // check if all active models are completed or errored
     const activeResps = state.activeModels.map(id => state.modelResponses[id]);
-    const allFinished = activeResps.every(r => 
+    const allModelsFinished = activeResps.every(r => 
       r.status === ModelStatus.COMPLETED || 
       r.status === ModelStatus.ERROR || 
       r.status === ModelStatus.TIMEOUT
     );
 
-    if (allFinished) {
-      const result = generateConsensus(state.modelResponses);
-      dispatch({ type: 'SET_CONSENSUS', payload: result });
+    if (allModelsFinished && !synthesisTriggeredRef.current) {
+      synthesisTriggeredRef.current = true;
+      runSynthesis();
     }
   }, [state.modelResponses, state.activeModels, state.isProcessing]);
+
+  const runSynthesis = async () => {
+    const { mode, provider, systemInstruction, customEndpoint, customModelName, customApiKey, customApiStyle } = state.synthesizerConfig;
+
+    if (mode === SynthesizerMode.HEURISTIC) {
+        const result = generateHeuristicConsensus(state.modelResponses);
+        dispatch({ type: 'UPDATE_CONSENSUS', payload: result });
+    } else {
+        // LLM Mode
+        const synthesisPrompt = prepareSynthesisPrompt(state.currentPrompt, state.modelResponses);
+        dispatch({ type: 'UPDATE_CONSENSUS', payload: { status: ConsensusStatus.SYNTHESIZING } });
+
+        if (provider === 'GEMINI') {
+            // Reuse Gemini Logic but with system prompt
+            const apiKey = state.apiKeyMap[ModelProvider.GEMINI] || process.env.API_KEY;
+            if (!apiKey) {
+                dispatch({ type: 'UPDATE_CONSENSUS', payload: { status: ConsensusStatus.ERROR, text: "Synthesis Failed: Missing Gemini API Key" } });
+                return;
+            }
+            
+            try {
+                const ai = new GoogleGenAI({ apiKey });
+                const responseStream = await ai.models.generateContentStream({
+                    model: 'gemini-2.5-flash',
+                    contents: [{ parts: [{ text: synthesisPrompt }] }],
+                    config: {
+                        systemInstruction: systemInstruction
+                    }
+                });
+
+                let fullText = '';
+                for await (const chunk of responseStream) {
+                    fullText += chunk.text || '';
+                    dispatch({ type: 'UPDATE_CONSENSUS', payload: { text: fullText } });
+                }
+                dispatch({ type: 'UPDATE_CONSENSUS', payload: { status: ConsensusStatus.COMPLETED, confidence: 0.99 } });
+
+            } catch (err: any) {
+                dispatch({ type: 'UPDATE_CONSENSUS', payload: { status: ConsensusStatus.ERROR, text: `Synthesis Error: ${err.message}` } });
+            }
+
+        } else if (provider === 'CUSTOM') {
+            // Use Custom Adapter
+            await streamCustomLLM(
+                customEndpoint || '',
+                customApiKey || '',
+                customModelName || '',
+                [
+                    { role: 'system', content: systemInstruction },
+                    { role: 'user', content: synthesisPrompt }
+                ],
+                customApiStyle || 'OPENAI',
+                (text, status) => {
+                    dispatch({ type: 'UPDATE_CONSENSUS', payload: { text, status, confidence: status === ConsensusStatus.COMPLETED ? 0.95 : 0 } });
+                }
+            );
+        }
+    }
+  };
 
   const handleSend = () => {
     if (!promptInput.trim() || state.isProcessing) return;
 
     dispatch({ type: 'START_REQUEST', payload: promptInput });
+    synthesisTriggeredRef.current = false;
     
     // Trigger API Calls
     state.activeModels.forEach(provider => {
@@ -123,12 +222,20 @@ export default function App() {
           dispatch({ type: 'UPDATE_RESPONSE', payload: { provider, data } });
         });
       } else {
-        // Use mock for others unless real adapter implemented with proxy
         streamMock(provider, promptInput, (data) => {
           dispatch({ type: 'UPDATE_RESPONSE', payload: { provider, data } });
         });
       }
     });
+  };
+
+  const handleClear = () => {
+      setPromptInput('');
+  };
+
+  const handleNewQuery = () => {
+      setPromptInput('');
+      dispatch({ type: 'CLEAR_OUTPUTS' });
   };
 
   return (
@@ -183,6 +290,8 @@ export default function App() {
               responses={state.modelResponses}
               consensus={state.consensus}
               activeModels={state.activeModels}
+              synthesizerConfig={state.synthesizerConfig}
+              dispatch={dispatch}
             />
           </div>
         </div>
@@ -203,18 +312,35 @@ export default function App() {
                 placeholder="INITIALIZE NEURAL QUERY SEQUENCE..."
                 className="flex-1 bg-transparent text-white font-mono text-sm p-4 focus:outline-none resize-none h-14 placeholder-gray-700"
               />
-              <div className="flex items-center pr-2 gap-2">
+              <div className="flex items-center pr-2 gap-3">
+                {/* Distinct Clear Input Button */}
                 <button 
-                  onClick={() => setPromptInput('')}
-                  className="p-2 text-gray-600 hover:text-cyber-red transition-colors"
-                  title="Clear Buffer"
+                  onClick={handleClear}
+                  className="group flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-mono text-gray-500 hover:text-white hover:bg-white/5 transition-all"
+                  title="Clear Text Buffer"
+                  aria-label="Clear text input"
                 >
-                  <RotateCcw size={18} />
+                  <RotateCcw size={14} className="group-hover:-rotate-180 transition-transform duration-300" />
+                  <span className="hidden md:inline">CLEAR</span>
                 </button>
+
+                {/* Distinct New Query Button */}
+                <button 
+                  onClick={handleNewQuery}
+                  className="group flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-mono text-cyber-red/70 border border-transparent hover:border-cyber-red/50 hover:bg-cyber-red/10 hover:text-cyber-red transition-all"
+                  title="Reset Session & Clear Board"
+                  aria-label="Start new query"
+                >
+                  <Trash2 size={14} />
+                  <span className="hidden md:inline font-bold">NEW QUERY</span>
+                </button>
+
+                <div className="w-[1px] h-8 bg-gray-800 mx-1"></div>
+                
                 <CyberButton 
                   onClick={handleSend} 
                   disabled={state.isProcessing || !promptInput.trim()}
-                  loading={state.isProcessing}
+                  loading={state.isProcessing && state.consensus.status !== ConsensusStatus.COMPLETED}
                 >
                   <Send size={16} className="ml-1" />
                 </CyberButton>

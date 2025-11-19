@@ -1,3 +1,4 @@
+
 export enum ModelProvider {
   GEMINI = 'GEMINI',
   OPENAI = 'OPENAI', // Simulated/Placeholder for CORS reasons in frontend-only
@@ -13,6 +14,30 @@ export enum ModelStatus {
   COMPLETED = 'COMPLETED',
   ERROR = 'ERROR',
   TIMEOUT = 'TIMEOUT'
+}
+
+export enum ConsensusStatus {
+  IDLE = 'IDLE',
+  ANALYZING = 'ANALYZING', // Waiting for other models
+  SYNTHESIZING = 'SYNTHESIZING', // Streaming synthesis
+  COMPLETED = 'COMPLETED',
+  ERROR = 'ERROR',
+  TIMEOUT = 'TIMEOUT'
+}
+
+export enum SynthesizerMode {
+  HEURISTIC = 'HEURISTIC',
+  LLM = 'LLM'
+}
+
+export interface SynthesizerConfig {
+  mode: SynthesizerMode;
+  provider: 'GEMINI' | 'CUSTOM';
+  customEndpoint?: string;
+  customModelName?: string;
+  customApiKey?: string;
+  customApiStyle?: 'OPENAI' | 'ANTHROPIC';
+  systemInstruction: string;
 }
 
 export interface ModelConfig {
@@ -38,10 +63,10 @@ export interface ModelResponse {
 }
 
 export interface ConsensusResult {
+  status: ConsensusStatus;
   text: string;
   confidence: number;
   contributors: { provider: ModelProvider; weight: number }[];
-  isReady: boolean;
 }
 
 export interface AppState {
@@ -51,6 +76,7 @@ export interface AppState {
   isProcessing: boolean;
   modelResponses: Record<ModelProvider, ModelResponse>;
   consensus: ConsensusResult;
+  synthesizerConfig: SynthesizerConfig;
   history: { prompt: string; consensus: string; timestamp: number }[];
 }
 
@@ -59,6 +85,8 @@ export type AppAction =
   | { type: 'TOGGLE_MODEL'; payload: ModelProvider }
   | { type: 'START_REQUEST'; payload: string }
   | { type: 'UPDATE_RESPONSE'; payload: { provider: ModelProvider; data: Partial<ModelResponse> } }
-  | { type: 'SET_CONSENSUS'; payload: ConsensusResult }
+  | { type: 'UPDATE_CONSENSUS'; payload: Partial<ConsensusResult> }
+  | { type: 'SET_SYNTHESIZER_CONFIG'; payload: Partial<SynthesizerConfig> }
   | { type: 'RESET_SESSION'; }
+  | { type: 'CLEAR_OUTPUTS'; }
   | { type: 'ADD_HISTORY'; payload: { prompt: string; consensus: string } };

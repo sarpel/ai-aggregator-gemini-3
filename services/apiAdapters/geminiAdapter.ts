@@ -1,5 +1,9 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { ModelResponse, ModelStatus, ModelProvider } from "../../types";
+
+const CONNECTION_TIMEOUT_MS = 30000; // 30s to first byte
+const GENERATION_TIMEOUT_MS = 60000; // 60s max duration after first byte
 
 export const streamGemini = async (
   prompt: string,
@@ -11,43 +15,81 @@ export const streamGemini = async (
     return;
   }
 
+  let isActive = true; // Guard to prevent updates after timeout/error
+  let connectionTimer: any = null;
+  let generationTimer: any = null;
+
   try {
     onUpdate({ status: ModelStatus.CONNECTING, text: '', progress: 5 });
     const startTime = Date.now();
 
     const ai = new GoogleGenAI({ apiKey });
     
-    // Using standard generateContentStream as per guidelines
+    // 1. Start Connection Timer (30s)
+    connectionTimer = setTimeout(() => {
+      if (isActive) {
+        isActive = false;
+        onUpdate({ status: ModelStatus.TIMEOUT, error: 'Connection timed out (30s)' });
+      }
+    }, CONNECTION_TIMEOUT_MS);
+
     const responseStream = await ai.models.generateContentStream({
       model: 'gemini-2.5-flash',
       contents: [{ parts: [{ text: prompt }] }],
     });
 
     let fullText = '';
-    onUpdate({ status: ModelStatus.STREAMING, progress: 10 });
+    let hasReceivedFirstByte = false;
 
     for await (const chunk of responseStream) {
+      if (!isActive) break;
+
+      if (!hasReceivedFirstByte) {
+        // 2. First Byte Received: Clear Connection Timer, Start Generation Timer
+        hasReceivedFirstByte = true;
+        clearTimeout(connectionTimer);
+        onUpdate({ status: ModelStatus.STREAMING, progress: 10 });
+        
+        generationTimer = setTimeout(() => {
+           if (isActive) {
+             isActive = false;
+             onUpdate({ status: ModelStatus.TIMEOUT, error: 'Generation timed out (60s)' });
+           }
+        }, GENERATION_TIMEOUT_MS);
+      }
+
       const chunkText = chunk.text || '';
       fullText += chunkText;
-      onUpdate({ 
-        text: fullText, 
-        latency: Date.now() - startTime,
-        progress: Math.min(90, 10 + (fullText.length / 10)) 
-      });
+      
+      if (isActive) {
+        onUpdate({ 
+          text: fullText, 
+          latency: Date.now() - startTime,
+          progress: Math.min(90, 10 + (fullText.length / 10)) 
+        });
+      }
     }
 
-    onUpdate({ 
-      status: ModelStatus.COMPLETED, 
-      text: fullText, 
-      progress: 100,
-      latency: Date.now() - startTime
-    });
+    if (isActive) {
+        clearTimeout(generationTimer);
+        onUpdate({ 
+        status: ModelStatus.COMPLETED, 
+        text: fullText, 
+        progress: 100,
+        latency: Date.now() - startTime
+        });
+    }
 
   } catch (error: any) {
     console.error("Gemini Error:", error);
-    onUpdate({ 
-      status: ModelStatus.ERROR, 
-      error: error.message || "Gemini connection failed" 
-    });
+    if (isActive) {
+        isActive = false;
+        clearTimeout(connectionTimer);
+        clearTimeout(generationTimer);
+        onUpdate({ 
+        status: ModelStatus.ERROR, 
+        error: error.message || "Gemini connection failed" 
+        });
+    }
   }
 };

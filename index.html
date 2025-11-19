@@ -28,12 +28,23 @@
             animation: {
               'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
               'glitch': 'glitch 1s linear infinite',
+              'scanline': 'scanline 6s linear infinite',
+              'tv-on': 'tvOn 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards',
             },
             keyframes: {
               glitch: {
                 '2%, 64%': { transform: 'translate(2px,0) skew(0deg)' },
                 '4%, 60%': { transform: 'translate(-2px,0) skew(0deg)' },
                 '62%': { transform: 'translate(0,0) skew(5deg)' },
+              },
+              scanline: {
+                '0%': { transform: 'translateY(-100%)' },
+                '100%': { transform: 'translateY(100%)' }
+              },
+              tvOn: {
+                '0%': { transform: 'scaleY(0)', opacity: '0' },
+                '60%': { transform: 'scaleY(1)', opacity: '1' },
+                '100%': { transform: 'scaleY(1)', opacity: '1' }
               }
             }
           }

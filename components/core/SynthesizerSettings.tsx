@@ -30,29 +30,8 @@ const SynthesizerSettings: React.FC<SynthesizerSettingsProps> = ({ config, dispa
         </div>
 
         <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
-          {/* Mode Selection */}
-          <div className="space-y-4">
-            <label className="text-cyber-neon font-mono text-xs font-bold uppercase tracking-widest block">Synthesis Mode</label>
-            <div className="grid grid-cols-2 gap-4">
-              <button 
-                onClick={() => handleChange('mode', SynthesizerMode.HEURISTIC)}
-                className={`p-4 border rounded-sm text-left transition-all ${config.mode === SynthesizerMode.HEURISTIC ? 'border-cyber-neon bg-cyber-neon/10 text-white' : 'border-gray-800 text-gray-500 hover:border-gray-600'}`}
-              >
-                <div className="font-bold font-mono mb-1">HEURISTIC (FAST)</div>
-                <div className="text-xs">Basic algorithmic merging. Instant, no extra API cost.</div>
-              </button>
-              <button 
-                onClick={() => handleChange('mode', SynthesizerMode.LLM)}
-                className={`p-4 border rounded-sm text-left transition-all ${config.mode === SynthesizerMode.LLM ? 'border-cyber-pink bg-cyber-pink/10 text-white' : 'border-gray-800 text-gray-500 hover:border-gray-600'}`}
-              >
-                <div className="font-bold font-mono mb-1">LLM SYNTHESIS (SMART)</div>
-                <div className="text-xs">Uses a Master LLM to harmonize and verify all inputs.</div>
-              </button>
-            </div>
-          </div>
-
-          {config.mode === SynthesizerMode.LLM && (
-            <div className="animate-fadeIn space-y-6 border-l-2 border-cyber-pink pl-6">
+          {/* Provider Configuration - Primary View now */}
+          <div className="animate-fadeIn space-y-6">
               {/* Provider Selection */}
               <div className="space-y-2">
                  <label className="text-gray-400 font-mono text-xs font-bold uppercase tracking-widest">Core Provider</label>
@@ -145,7 +124,6 @@ const SynthesizerSettings: React.FC<SynthesizerSettingsProps> = ({ config, dispa
                 />
               </div>
             </div>
-          )}
         </div>
 
         {/* Footer */}

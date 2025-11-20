@@ -1,9 +1,7 @@
 
 import { GoogleGenAI } from "@google/genai";
 import { ModelResponse, ModelStatus, ModelProvider } from "../../types";
-
-const CONNECTION_TIMEOUT_MS = 30000; // 30s to first byte
-const GENERATION_TIMEOUT_MS = 60000; // 60s max duration after first byte
+import { APP_TIMEOUTS } from "../../constants";
 
 export const streamGemini = async (
   prompt: string,
@@ -25,13 +23,13 @@ export const streamGemini = async (
 
     const ai = new GoogleGenAI({ apiKey });
     
-    // 1. Start Connection Timer (30s)
+    // 1. Start Connection Timer
     connectionTimer = setTimeout(() => {
       if (isActive) {
         isActive = false;
-        onUpdate({ status: ModelStatus.TIMEOUT, error: 'Connection timed out (30s)' });
+        onUpdate({ status: ModelStatus.TIMEOUT, error: 'Connection timed out' });
       }
-    }, CONNECTION_TIMEOUT_MS);
+    }, APP_TIMEOUTS.connectionTimeoutMs);
 
     const responseStream = await ai.models.generateContentStream({
       model: 'gemini-2.5-flash',
@@ -53,9 +51,9 @@ export const streamGemini = async (
         generationTimer = setTimeout(() => {
            if (isActive) {
              isActive = false;
-             onUpdate({ status: ModelStatus.TIMEOUT, error: 'Generation timed out (60s)' });
+             onUpdate({ status: ModelStatus.TIMEOUT, error: 'Generation timed out' });
            }
-        }, GENERATION_TIMEOUT_MS);
+        }, APP_TIMEOUTS.generationTimeoutMs);
       }
 
       const chunkText = chunk.text || '';

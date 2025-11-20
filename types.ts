@@ -1,10 +1,10 @@
 
 export enum ModelProvider {
   GEMINI = 'GEMINI',
-  OPENAI = 'OPENAI', // Simulated/Placeholder for CORS reasons in frontend-only
-  ANTHROPIC = 'ANTHROPIC', // Simulated/Placeholder
-  GROK = 'GROK', // Simulated/Placeholder
-  DEEPSEEK = 'DEEPSEEK' // Simulated/Placeholder
+  OPENAI = 'OPENAI', 
+  ANTHROPIC = 'ANTHROPIC', 
+  GROK = 'GROK', 
+  DEEPSEEK = 'DEEPSEEK'
 }
 
 export enum ModelStatus {
@@ -18,15 +18,14 @@ export enum ModelStatus {
 
 export enum ConsensusStatus {
   IDLE = 'IDLE',
-  ANALYZING = 'ANALYZING', // Waiting for other models
-  SYNTHESIZING = 'SYNTHESIZING', // Streaming synthesis
+  ANALYZING = 'ANALYZING', 
+  SYNTHESIZING = 'SYNTHESIZING', 
   COMPLETED = 'COMPLETED',
   ERROR = 'ERROR',
   TIMEOUT = 'TIMEOUT'
 }
 
 export enum SynthesizerMode {
-  HEURISTIC = 'HEURISTIC',
   LLM = 'LLM'
 }
 
@@ -45,6 +44,11 @@ export interface ModelConfig {
   name: string;
   avatarColor: string;
   description: string;
+  provider: string;
+  apiStyle: string;
+  modelName: string;
+  endpoint?: string;
+  isSimulated: boolean;
 }
 
 export interface ChatMessage {

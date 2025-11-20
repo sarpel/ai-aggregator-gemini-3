@@ -1,8 +1,5 @@
 
-import { ConsensusStatus } from "../../types";
-
-const CONNECTION_TIMEOUT_MS = 30000;
-const GENERATION_TIMEOUT_MS = 60000;
+import { APP_TIMEOUTS } from "../../constants";
 
 export const streamCustomLLM = async (
   endpoint: string,
@@ -10,7 +7,8 @@ export const streamCustomLLM = async (
   modelName: string,
   messages: { role: string; content: string }[],
   apiStyle: 'OPENAI' | 'ANTHROPIC',
-  onUpdate: (text: string, status: ConsensusStatus) => void
+  onUpdate: (text: string, status: any, error?: string) => void,
+  statusEnums: { synthesizing: any; completed: any; error: any; timeout: any }
 ) => {
   const controller = new AbortController();
   const signal = controller.signal;
@@ -19,7 +17,7 @@ export const streamCustomLLM = async (
   let isActive = true;
 
   try {
-    onUpdate('', ConsensusStatus.SYNTHESIZING);
+    onUpdate('', statusEnums.synthesizing);
 
     let headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -29,7 +27,7 @@ export const streamCustomLLM = async (
 
     // --- OPENAI STYLE ---
     if (apiStyle === 'OPENAI') {
-      headers['Authorization'] = `Bearer ${apiKey}`;
+      if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
       body = {
         model: modelName,
         messages: messages,
@@ -38,7 +36,7 @@ export const streamCustomLLM = async (
     } 
     // --- ANTHROPIC STYLE ---
     else if (apiStyle === 'ANTHROPIC') {
-      headers['x-api-key'] = apiKey;
+      if (apiKey) headers['x-api-key'] = apiKey;
       headers['anthropic-version'] = '2023-06-01';
       
       const systemMsg = messages.find(m => m.role === 'system');
@@ -61,9 +59,9 @@ export const streamCustomLLM = async (
         if (isActive) {
             isActive = false;
             controller.abort();
-            onUpdate("Error: Connection timed out (30s)", ConsensusStatus.ERROR);
+            onUpdate("Error: Connection timed out", statusEnums.error, "Connection Timeout");
         }
-    }, CONNECTION_TIMEOUT_MS);
+    }, APP_TIMEOUTS.connectionTimeoutMs);
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -95,9 +93,9 @@ export const streamCustomLLM = async (
               if (isActive) {
                   isActive = false;
                   controller.abort();
-                  onUpdate(fullText + "\n[TIMEOUT: Generation Limit Reached]", ConsensusStatus.TIMEOUT);
+                  onUpdate(fullText + "\n[TIMEOUT: Generation Limit Reached]", statusEnums.timeout, "Generation Timeout");
               }
-          }, GENERATION_TIMEOUT_MS);
+          }, APP_TIMEOUTS.generationTimeoutMs);
       }
 
       const chunk = decoder.decode(value, { stream: true });
@@ -114,7 +112,7 @@ export const streamCustomLLM = async (
               const json = JSON.parse(jsonStr);
               const content = json.choices?.[0]?.delta?.content || "";
               fullText += content;
-              if (isActive) onUpdate(fullText, ConsensusStatus.SYNTHESIZING);
+              if (isActive) onUpdate(fullText, statusEnums.synthesizing);
             } catch (e) {}
           }
         } else if (apiStyle === 'ANTHROPIC') {
@@ -124,7 +122,7 @@ export const streamCustomLLM = async (
                const json = JSON.parse(jsonStr);
                if (json.type === 'content_block_delta' && json.delta?.type === 'text_delta') {
                  fullText += json.delta.text;
-                 if (isActive) onUpdate(fullText, ConsensusStatus.SYNTHESIZING);
+                 if (isActive) onUpdate(fullText, statusEnums.synthesizing);
                }
              } catch (e) {}
           }
@@ -134,7 +132,7 @@ export const streamCustomLLM = async (
 
     if (isActive) {
         clearTimeout(generationTimer);
-        onUpdate(fullText, ConsensusStatus.COMPLETED);
+        onUpdate(fullText, statusEnums.completed);
     }
   } catch (error: any) {
     // Only report error if we didn't abort strictly due to our own timeout logic
@@ -145,7 +143,7 @@ export const streamCustomLLM = async (
         if (isActive) {
             clearTimeout(connectionTimer);
             clearTimeout(generationTimer);
-            onUpdate(`Error connecting to neural core (${apiStyle}): ${error.message}`, ConsensusStatus.ERROR);
+            onUpdate(`Error connecting to endpoint (${apiStyle}): ${error.message}`, statusEnums.error, error.message);
         }
     }
   }

@@ -5,7 +5,7 @@ import { INITIAL_RESPONSE_STATE, AVAILABLE_MODELS } from './constants';
 import { streamGemini } from './services/apiAdapters/geminiAdapter';
 import { streamMock } from './services/apiAdapters/mockAdapter';
 import { streamCustomLLM } from './services/apiAdapters/customAdapter';
-import { generateHeuristicConsensus, prepareSynthesisPrompt } from './services/consensus/consensusEngine';
+import { prepareSynthesisPrompt } from './services/consensus/consensusEngine';
 import { GoogleGenAI } from "@google/genai";
 import StatusMatrix from './components/core/StatusMatrix';
 import ResponseViewer from './components/core/ResponseViewer';
@@ -13,24 +13,24 @@ import CredentialManager from './components/core/CredentialManager';
 import CyberButton from './components/ui/CyberButton';
 import { Send, RotateCcw, Trash2 } from 'lucide-react';
 
+// Initialize state dynamically based on AVAILABLE_MODELS from config
+const initialApiKeyMap: Record<string, string> = {};
+const initialResponses: Record<string, any> = {};
+const initialActiveModels: ModelProvider[] = [];
+
+AVAILABLE_MODELS.forEach(model => {
+  initialApiKeyMap[model.id] = '';
+  initialResponses[model.id] = INITIAL_RESPONSE_STATE(model.id);
+  // Default to first 3 models being active
+  if (initialActiveModels.length < 3) initialActiveModels.push(model.id);
+});
+
 const initialState: AppState = {
-  apiKeyMap: {
-    [ModelProvider.GEMINI]: '',
-    [ModelProvider.OPENAI]: '',
-    [ModelProvider.ANTHROPIC]: '',
-    [ModelProvider.GROK]: '',
-    [ModelProvider.DEEPSEEK]: ''
-  },
-  activeModels: [ModelProvider.GEMINI, ModelProvider.OPENAI, ModelProvider.ANTHROPIC],
+  apiKeyMap: initialApiKeyMap as Record<ModelProvider, string>,
+  activeModels: initialActiveModels,
   currentPrompt: '',
   isProcessing: false,
-  modelResponses: {
-    [ModelProvider.GEMINI]: INITIAL_RESPONSE_STATE(ModelProvider.GEMINI),
-    [ModelProvider.OPENAI]: INITIAL_RESPONSE_STATE(ModelProvider.OPENAI),
-    [ModelProvider.ANTHROPIC]: INITIAL_RESPONSE_STATE(ModelProvider.ANTHROPIC),
-    [ModelProvider.GROK]: INITIAL_RESPONSE_STATE(ModelProvider.GROK),
-    [ModelProvider.DEEPSEEK]: INITIAL_RESPONSE_STATE(ModelProvider.DEEPSEEK),
-  },
+  modelResponses: initialResponses as Record<ModelProvider, any>,
   consensus: {
     status: ConsensusStatus.IDLE,
     text: '',
@@ -38,7 +38,7 @@ const initialState: AppState = {
     contributors: [],
   },
   synthesizerConfig: {
-    mode: SynthesizerMode.HEURISTIC,
+    mode: SynthesizerMode.LLM,
     provider: 'GEMINI',
     systemInstruction: 'You are a Superintelligent Consensus Engine. Your goal is to synthesize the provided AI responses into a single, superior, "source of truth" answer. Resolve conflicts, verify facts, and merge insights.',
     customEndpoint: 'http://localhost:11434/v1/chat/completions',
@@ -99,17 +99,17 @@ function reducer(state: AppState, action: AppAction): AppState {
             synthesizerConfig: { ...state.synthesizerConfig, ...action.payload }
         };
     case 'CLEAR_OUTPUTS':
+      // Re-initialize responses based on active config
+      const clearResponses: Record<string, any> = {};
+      AVAILABLE_MODELS.forEach(m => {
+        clearResponses[m.id] = INITIAL_RESPONSE_STATE(m.id);
+      });
+
       return {
         ...state,
         currentPrompt: '',
         isProcessing: false,
-        modelResponses: {
-            [ModelProvider.GEMINI]: INITIAL_RESPONSE_STATE(ModelProvider.GEMINI),
-            [ModelProvider.OPENAI]: INITIAL_RESPONSE_STATE(ModelProvider.OPENAI),
-            [ModelProvider.ANTHROPIC]: INITIAL_RESPONSE_STATE(ModelProvider.ANTHROPIC),
-            [ModelProvider.GROK]: INITIAL_RESPONSE_STATE(ModelProvider.GROK),
-            [ModelProvider.DEEPSEEK]: INITIAL_RESPONSE_STATE(ModelProvider.DEEPSEEK),
-        },
+        modelResponses: clearResponses as Record<ModelProvider, any>,
         consensus: {
             status: ConsensusStatus.IDLE,
             text: '',
@@ -151,61 +151,63 @@ export default function App() {
   }, [state.modelResponses, state.activeModels, state.isProcessing]);
 
   const runSynthesis = async () => {
-    const { mode, provider, systemInstruction, customEndpoint, customModelName, customApiKey, customApiStyle } = state.synthesizerConfig;
+    const { provider, systemInstruction, customEndpoint, customModelName, customApiKey, customApiStyle } = state.synthesizerConfig;
 
-    if (mode === SynthesizerMode.HEURISTIC) {
-        const result = generateHeuristicConsensus(state.modelResponses);
-        dispatch({ type: 'UPDATE_CONSENSUS', payload: result });
-    } else {
-        // LLM Mode
-        const synthesisPrompt = prepareSynthesisPrompt(state.currentPrompt, state.modelResponses);
-        dispatch({ type: 'UPDATE_CONSENSUS', payload: { status: ConsensusStatus.SYNTHESIZING } });
+    const synthesisPrompt = prepareSynthesisPrompt(state.currentPrompt, state.modelResponses);
+    dispatch({ type: 'UPDATE_CONSENSUS', payload: { status: ConsensusStatus.SYNTHESIZING } });
 
-        if (provider === 'GEMINI') {
-            // Reuse Gemini Logic but with system prompt
-            const apiKey = state.apiKeyMap[ModelProvider.GEMINI] || process.env.API_KEY;
-            if (!apiKey) {
-                dispatch({ type: 'UPDATE_CONSENSUS', payload: { status: ConsensusStatus.ERROR, text: "Synthesis Failed: Missing Gemini API Key" } });
-                return;
-            }
-            
-            try {
-                const ai = new GoogleGenAI({ apiKey });
-                const responseStream = await ai.models.generateContentStream({
-                    model: 'gemini-2.5-flash',
-                    contents: [{ parts: [{ text: synthesisPrompt }] }],
-                    config: {
-                        systemInstruction: systemInstruction
-                    }
-                });
-
-                let fullText = '';
-                for await (const chunk of responseStream) {
-                    fullText += chunk.text || '';
-                    dispatch({ type: 'UPDATE_CONSENSUS', payload: { text: fullText } });
-                }
-                dispatch({ type: 'UPDATE_CONSENSUS', payload: { status: ConsensusStatus.COMPLETED, confidence: 0.99 } });
-
-            } catch (err: any) {
-                dispatch({ type: 'UPDATE_CONSENSUS', payload: { status: ConsensusStatus.ERROR, text: `Synthesis Error: ${err.message}` } });
-            }
-
-        } else if (provider === 'CUSTOM') {
-            // Use Custom Adapter
-            await streamCustomLLM(
-                customEndpoint || '',
-                customApiKey || '',
-                customModelName || '',
-                [
-                    { role: 'system', content: systemInstruction },
-                    { role: 'user', content: synthesisPrompt }
-                ],
-                customApiStyle || 'OPENAI',
-                (text, status) => {
-                    dispatch({ type: 'UPDATE_CONSENSUS', payload: { text, status, confidence: status === ConsensusStatus.COMPLETED ? 0.95 : 0 } });
-                }
-            );
+    if (provider === 'GEMINI') {
+        const apiKey = state.apiKeyMap[ModelProvider.GEMINI] || process.env.API_KEY;
+        if (!apiKey) {
+            dispatch({ type: 'UPDATE_CONSENSUS', payload: { status: ConsensusStatus.ERROR, text: "Synthesis Failed: Missing Gemini API Key" } });
+            return;
         }
+        
+        try {
+            const ai = new GoogleGenAI({ apiKey });
+            const responseStream = await ai.models.generateContentStream({
+                model: 'gemini-2.5-flash',
+                contents: [{ parts: [{ text: synthesisPrompt }] }],
+                config: {
+                    systemInstruction: systemInstruction
+                }
+            });
+
+            let fullText = '';
+            for await (const chunk of responseStream) {
+                fullText += chunk.text || '';
+                dispatch({ type: 'UPDATE_CONSENSUS', payload: { text: fullText } });
+            }
+            dispatch({ type: 'UPDATE_CONSENSUS', payload: { status: ConsensusStatus.COMPLETED, confidence: 0.99 } });
+
+        } catch (err: any) {
+            dispatch({ type: 'UPDATE_CONSENSUS', payload: { status: ConsensusStatus.ERROR, text: `Synthesis Error: ${err.message}` } });
+        }
+
+    } else if (provider === 'CUSTOM') {
+        await streamCustomLLM(
+            customEndpoint || '',
+            customApiKey || '',
+            customModelName || '',
+            [
+                { role: 'system', content: systemInstruction },
+                { role: 'user', content: synthesisPrompt }
+            ],
+            customApiStyle || 'OPENAI',
+            (text, status, error) => {
+                 if (status === ConsensusStatus.ERROR) {
+                    dispatch({ type: 'UPDATE_CONSENSUS', payload: { status, text: error || text } });
+                 } else {
+                    dispatch({ type: 'UPDATE_CONSENSUS', payload: { text, status, confidence: status === ConsensusStatus.COMPLETED ? 0.95 : 0 } });
+                 }
+            },
+            {
+                synthesizing: ConsensusStatus.SYNTHESIZING,
+                completed: ConsensusStatus.COMPLETED,
+                error: ConsensusStatus.ERROR,
+                timeout: ConsensusStatus.TIMEOUT
+            }
+        );
     }
   };
 
@@ -215,16 +217,67 @@ export default function App() {
     dispatch({ type: 'START_REQUEST', payload: promptInput });
     synthesisTriggeredRef.current = false;
     
-    // Trigger API Calls
-    state.activeModels.forEach(provider => {
-      if (provider === ModelProvider.GEMINI) {
-        streamGemini(promptInput, state.apiKeyMap[ModelProvider.GEMINI] || process.env.API_KEY || '', (data) => {
-          dispatch({ type: 'UPDATE_RESPONSE', payload: { provider, data } });
+    // Trigger API Calls Dynamically based on Config
+    state.activeModels.forEach(providerId => {
+      const modelConfig = AVAILABLE_MODELS.find(m => m.id === providerId);
+      if (!modelConfig) return;
+
+      // 1. Simulated Mode
+      if (modelConfig.isSimulated) {
+        streamMock(providerId, promptInput, (data) => {
+          dispatch({ type: 'UPDATE_RESPONSE', payload: { provider: providerId, data } });
         });
+        return;
+      }
+
+      const apiKey = state.apiKeyMap[providerId] || process.env.API_KEY || '';
+
+      // 2. Gemini Native Mode
+      if (modelConfig.apiStyle === 'GEMINI') {
+        streamGemini(promptInput, apiKey, (data) => {
+          dispatch({ type: 'UPDATE_RESPONSE', payload: { provider: providerId, data } });
+        });
+        return;
+      }
+
+      // 3. Custom/Generic API Mode (OpenAI/Anthropic Standards)
+      if (modelConfig.endpoint && modelConfig.modelName) {
+         const startTime = Date.now();
+         dispatch({ type: 'UPDATE_RESPONSE', payload: { provider: providerId, data: { status: ModelStatus.CONNECTING, progress: 5 } } });
+
+         streamCustomLLM(
+            modelConfig.endpoint,
+            apiKey,
+            modelConfig.modelName,
+            [{ role: 'user', content: promptInput }],
+            modelConfig.apiStyle as 'OPENAI' | 'ANTHROPIC',
+            (text, status, error) => {
+                let modelStatus = ModelStatus.STREAMING;
+                if (status === ModelStatus.COMPLETED) modelStatus = ModelStatus.COMPLETED;
+                if (status === ModelStatus.ERROR) modelStatus = ModelStatus.ERROR;
+                if (status === ModelStatus.TIMEOUT) modelStatus = ModelStatus.TIMEOUT;
+
+                dispatch({ type: 'UPDATE_RESPONSE', payload: { 
+                    provider: providerId, 
+                    data: { 
+                        text, 
+                        status: modelStatus, 
+                        error,
+                        latency: Date.now() - startTime,
+                        progress: status === ModelStatus.COMPLETED ? 100 : Math.min(90, 10 + (text.length / 10))
+                    } 
+                }});
+            },
+            {
+                synthesizing: ModelStatus.STREAMING,
+                completed: ModelStatus.COMPLETED,
+                error: ModelStatus.ERROR,
+                timeout: ModelStatus.TIMEOUT
+            }
+         );
       } else {
-        streamMock(provider, promptInput, (data) => {
-          dispatch({ type: 'UPDATE_RESPONSE', payload: { provider, data } });
-        });
+        // Fallback if config is incomplete
+        dispatch({ type: 'UPDATE_RESPONSE', payload: { provider: providerId, data: { status: ModelStatus.ERROR, error: 'Invalid Config' } } });
       }
     });
   };

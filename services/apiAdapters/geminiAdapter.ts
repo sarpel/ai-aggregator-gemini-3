@@ -8,6 +8,7 @@ export const streamGemini = async (
   apiKey: string,
   onUpdate: (data: Partial<ModelResponse>) => void
 ) => {
+  // Guard: Connection relies on API Key
   if (!apiKey) {
     onUpdate({ status: ModelStatus.ERROR, error: 'Missing API Key' });
     return;
@@ -79,14 +80,18 @@ export const streamGemini = async (
     }
 
   } catch (error: any) {
-    console.error("Gemini Error:", error);
+    // Silent Error Handling: Log to console but don't crash app
+    console.error("[Gemini Adapter] Error:", error);
+    
     if (isActive) {
         isActive = false;
         clearTimeout(connectionTimer);
         clearTimeout(generationTimer);
+        
+        // Gracefully update status to ERROR so UI reflects it
         onUpdate({ 
-        status: ModelStatus.ERROR, 
-        error: error.message || "Gemini connection failed" 
+          status: ModelStatus.ERROR, 
+          error: error.message || "Gemini connection failed" 
         });
     }
   }

@@ -24,7 +24,7 @@ export const config = {
       "apiStyle": "OPENAI",
       "endpoint": "https://api.openai.com/v1/chat/completions",
       "modelName": "gpt-4o",
-      "isSimulated": true
+      "isSimulated": false
     },
     {
       "id": "ANTHROPIC",
@@ -35,7 +35,7 @@ export const config = {
       "apiStyle": "ANTHROPIC",
       "endpoint": "https://api.anthropic.com/v1/messages",
       "modelName": "claude-3-5-sonnet-20240620",
-      "isSimulated": true
+      "isSimulated": false
     },
     {
       "id": "GROK",
@@ -46,7 +46,7 @@ export const config = {
       "apiStyle": "OPENAI",
       "endpoint": "https://api.grok.x.ai/v1/chat/completions",
       "modelName": "grok-beta",
-      "isSimulated": true
+      "isSimulated": false
     },
     {
       "id": "DEEPSEEK",
@@ -57,7 +57,7 @@ export const config = {
       "apiStyle": "OPENAI",
       "endpoint": "https://api.deepseek.com/chat/completions",
       "modelName": "deepseek-chat",
-      "isSimulated": true
+      "isSimulated": false
     }
   ]
 };

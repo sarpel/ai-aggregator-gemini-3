@@ -59,7 +59,7 @@ export const streamCustomLLM = async (
         if (isActive) {
             isActive = false;
             controller.abort();
-            onUpdate("Error: Connection timed out", statusEnums.error, "Connection Timeout");
+            onUpdate("Error: Connection timed out", statusEnums.timeout, "Connection Timeout");
         }
     }, APP_TIMEOUTS.connectionTimeoutMs);
 
@@ -135,15 +135,20 @@ export const streamCustomLLM = async (
         onUpdate(fullText, statusEnums.completed);
     }
   } catch (error: any) {
-    // Only report error if we didn't abort strictly due to our own timeout logic
+    // Check if it's an abort error (timeout) which we handled, otherwise it's a network error
     if (error.name === 'AbortError' && !isActive) {
-       // already handled by timeout callback
+       // Already handled by the timeout callback
     } else {
-        console.error("Custom LLM Error:", error);
+        console.error(`[Custom Adapter] Stream Error (${apiStyle}):`, error);
         if (isActive) {
+            isActive = false;
             clearTimeout(connectionTimer);
             clearTimeout(generationTimer);
-            onUpdate(`Error connecting to endpoint (${apiStyle}): ${error.message}`, statusEnums.error, error.message);
+            onUpdate(
+                `Connection Error: ${error.message}`, 
+                statusEnums.error, 
+                error.message || 'Unknown Network Error'
+            );
         }
     }
   }

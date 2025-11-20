@@ -30,6 +30,7 @@ const StatusMatrix: React.FC<StatusMatrixProps> = ({ activeModels, modelResponse
             {/* Header Info */}
             <div className="flex items-center gap-3 relative z-10">
               <ModelAvatar 
+                providerId={model.id}
                 name={model.name} 
                 color={model.avatarColor} 
                 status={status} 

@@ -15,7 +15,7 @@ export const streamMock = async (
   onUpdate: (data: Partial<ModelResponse>) => void
 ) => {
   let isActive = true;
-  onUpdate({ status: ModelStatus.CONNECTING, text: '', progress: 5 });
+  onUpdate({ status: ModelStatus.CONNECTING, text: '', progress: 5, tokenCount: 0 });
   
   // Artificial connection delay
   await new Promise(r => setTimeout(r, 800 + Math.random() * 1000));
@@ -54,7 +54,8 @@ export const streamMock = async (
         onUpdate({ 
         text: currentText,
         latency: Date.now() - startTime,
-        progress: 10 + (i / chars.length) * 90
+        progress: 10 + (i / chars.length) * 90,
+        tokenCount: Math.ceil(currentText.length / 4)
         });
     }
   }
@@ -66,7 +67,8 @@ export const streamMock = async (
         status: ModelStatus.COMPLETED, 
         text: currentText, 
         progress: 100,
-        latency: Date.now() - startTime 
+        latency: Date.now() - startTime,
+        tokenCount: Math.ceil(fullText.length / 4)
     });
   }
 };

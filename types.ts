@@ -64,6 +64,7 @@ export interface ModelResponse {
   error?: string;
   latency: number;
   progress: number; // 0-100
+  tokenCount?: number;
 }
 
 export interface ConsensusResult {
@@ -88,6 +89,7 @@ export type AppAction =
   | { type: 'SET_API_KEY'; payload: { provider: ModelProvider; key: string } }
   | { type: 'TOGGLE_MODEL'; payload: ModelProvider }
   | { type: 'START_REQUEST'; payload: string }
+  | { type: 'RETRY_REQUEST'; payload: ModelProvider }
   | { type: 'UPDATE_RESPONSE'; payload: { provider: ModelProvider; data: Partial<ModelResponse> } }
   | { type: 'UPDATE_CONSENSUS'; payload: Partial<ConsensusResult> }
   | { type: 'SET_SYNTHESIZER_CONFIG'; payload: Partial<SynthesizerConfig> }

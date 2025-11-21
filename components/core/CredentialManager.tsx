@@ -1,7 +1,9 @@
+
 import React, { useState } from 'react';
 import { ModelProvider, AppAction } from '../../types';
 import { AVAILABLE_MODELS } from '../../constants';
 import { Shield, Key, XCircle, Eye, EyeOff } from 'lucide-react';
+import CyberTooltip from '../ui/CyberTooltip';
 
 interface CredentialManagerProps {
   apiKeyMap: Record<ModelProvider, string>;
@@ -14,13 +16,15 @@ const CredentialManager: React.FC<CredentialManagerProps> = ({ apiKeyMap, dispat
 
   if (!isOpen) {
     return (
-      <button 
-        onClick={() => setIsOpen(true)}
-        className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2 bg-black/80 border border-cyber-gray text-xs font-mono text-cyber-neon hover:border-cyber-neon backdrop-blur hover:shadow-[0_0_10px_rgba(0,243,255,0.2)] transition-all rounded-sm"
-      >
-        <Shield size={14} />
-        SECURE VAULT
-      </button>
+      <CyberTooltip content="Manage API Credentials (RAM Only)" position="left">
+        <button 
+          onClick={() => setIsOpen(true)}
+          className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2 bg-black/80 border border-cyber-gray text-xs font-mono text-cyber-neon hover:border-cyber-neon backdrop-blur hover:shadow-[0_0_10px_rgba(0,243,255,0.2)] transition-all rounded-sm"
+        >
+          <Shield size={14} />
+          SECURE VAULT
+        </button>
+      </CyberTooltip>
     );
   }
 
@@ -66,18 +70,23 @@ const CredentialManager: React.FC<CredentialManagerProps> = ({ apiKeyMap, dispat
         </div>
 
         <div className="mt-6 flex justify-between items-center border-t border-gray-800 pt-4">
-          <button 
-            onClick={() => setShowKeys(!showKeys)}
-            className="text-xs text-gray-500 hover:text-white flex items-center gap-1"
-          >
-            {showKeys ? <EyeOff size={14} /> : <Eye size={14} />} {showKeys ? 'Hide' : 'Show'} Secrets
-          </button>
-          <button 
-            onClick={() => dispatch({ type: 'RESET_SESSION' })}
-            className="text-xs text-cyber-red hover:underline font-mono"
-          >
-            PURGE MEMORY
-          </button>
+          <CyberTooltip content={showKeys ? "Mask API keys" : "Reveal API keys"} position="right">
+            <button 
+              onClick={() => setShowKeys(!showKeys)}
+              className="text-xs text-gray-500 hover:text-white flex items-center gap-1"
+            >
+              {showKeys ? <EyeOff size={14} /> : <Eye size={14} />} {showKeys ? 'Hide' : 'Show'} Secrets
+            </button>
+          </CyberTooltip>
+          
+          <CyberTooltip content="DANGER: Wipes all keys and resets app" position="left">
+            <button 
+              onClick={() => dispatch({ type: 'RESET_SESSION' })}
+              className="text-xs text-cyber-red hover:underline font-mono"
+            >
+              PURGE MEMORY
+            </button>
+          </CyberTooltip>
         </div>
       </div>
     </div>

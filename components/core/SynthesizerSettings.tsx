@@ -3,6 +3,7 @@ import React from 'react';
 import { SynthesizerConfig, SynthesizerMode, AppAction } from '../../types';
 import { Cpu, X, Settings, Save, Server, Network } from 'lucide-react';
 import CyberButton from '../ui/CyberButton';
+import CyberTooltip from '../ui/CyberTooltip';
 
 interface SynthesizerSettingsProps {
   config: SynthesizerConfig;
@@ -35,14 +36,16 @@ const SynthesizerSettings: React.FC<SynthesizerSettingsProps> = ({ config, dispa
               {/* Provider Selection */}
               <div className="space-y-2">
                  <label className="text-gray-400 font-mono text-xs font-bold uppercase tracking-widest">Core Provider</label>
-                 <select 
-                    value={config.provider}
-                    onChange={(e) => handleChange('provider', e.target.value)}
-                    className="w-full bg-black border border-gray-700 text-white font-mono p-2 focus:border-cyber-pink focus:outline-none"
-                 >
-                    <option value="GEMINI">Gemini (Uses App Key)</option>
-                    <option value="CUSTOM">Custom / Local / 3rd Party</option>
-                 </select>
+                 <CyberTooltip content="Choose which AI model synthesizes the final answer" position="top">
+                   <select 
+                      value={config.provider}
+                      onChange={(e) => handleChange('provider', e.target.value)}
+                      className="w-full bg-black border border-gray-700 text-white font-mono p-2 focus:border-cyber-pink focus:outline-none"
+                   >
+                      <option value="GEMINI">Gemini (Uses App Key)</option>
+                      <option value="CUSTOM">Custom / Local / 3rd Party</option>
+                   </select>
+                 </CyberTooltip>
               </div>
 
               {config.provider === 'CUSTOM' && (
@@ -54,26 +57,30 @@ const SynthesizerSettings: React.FC<SynthesizerSettingsProps> = ({ config, dispa
                        <Network size={12} /> API Style / Protocol
                      </label>
                      <div className="flex gap-4">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input 
-                                type="radio" 
-                                name="apiStyle"
-                                checked={config.customApiStyle === 'OPENAI' || !config.customApiStyle}
-                                onChange={() => handleChange('customApiStyle', 'OPENAI')}
-                                className="accent-cyber-pink"
-                            />
-                            <span className="text-sm font-mono">OpenAI Compatible</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input 
-                                type="radio" 
-                                name="apiStyle"
-                                checked={config.customApiStyle === 'ANTHROPIC'}
-                                onChange={() => handleChange('customApiStyle', 'ANTHROPIC')}
-                                className="accent-cyber-pink"
-                            />
-                            <span className="text-sm font-mono">Anthropic</span>
-                        </label>
+                        <CyberTooltip content="Standard OpenAI Chat Completions format" position="right">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input 
+                                    type="radio" 
+                                    name="apiStyle"
+                                    checked={config.customApiStyle === 'OPENAI' || !config.customApiStyle}
+                                    onChange={() => handleChange('customApiStyle', 'OPENAI')}
+                                    className="accent-cyber-pink"
+                                />
+                                <span className="text-sm font-mono">OpenAI Compatible</span>
+                            </label>
+                        </CyberTooltip>
+                        <CyberTooltip content="Anthropic Messages API format" position="right">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input 
+                                    type="radio" 
+                                    name="apiStyle"
+                                    checked={config.customApiStyle === 'ANTHROPIC'}
+                                    onChange={() => handleChange('customApiStyle', 'ANTHROPIC')}
+                                    className="accent-cyber-pink"
+                                />
+                                <span className="text-sm font-mono">Anthropic</span>
+                            </label>
+                        </CyberTooltip>
                      </div>
                   </div>
 
@@ -116,12 +123,14 @@ const SynthesizerSettings: React.FC<SynthesizerSettingsProps> = ({ config, dispa
               {/* System Prompt Configuration */}
               <div className="space-y-2">
                 <label className="text-gray-400 font-mono text-xs font-bold uppercase tracking-widest">Master Directive (System Prompt)</label>
-                <textarea 
-                    value={config.systemInstruction}
-                    onChange={(e) => handleChange('systemInstruction', e.target.value)}
-                    className="w-full h-32 bg-black border border-gray-700 text-cyber-pink font-mono text-sm p-3 focus:border-cyber-pink focus:outline-none resize-none"
-                    placeholder="You are the arbiter of truth..."
-                />
+                <CyberTooltip content="Define the persona and rules for the Consensus Engine" position="top">
+                    <textarea 
+                        value={config.systemInstruction}
+                        onChange={(e) => handleChange('systemInstruction', e.target.value)}
+                        className="w-full h-32 bg-black border border-gray-700 text-cyber-pink font-mono text-sm p-3 focus:border-cyber-pink focus:outline-none resize-none"
+                        placeholder="You are the arbiter of truth..."
+                    />
+                </CyberTooltip>
               </div>
             </div>
         </div>

@@ -1,7 +1,7 @@
 
 export const config = {
   "appSettings": {
-    "connectionTimeoutMs": 30000,
+    "connectionTimeoutMs": 60000,
     "generationTimeoutMs": 60000
   },
   "models": [
@@ -39,12 +39,12 @@ export const config = {
     },
     {
       "id": "GROK",
-      "name": "Grok Beta",
+      "name": "Grok 2",
       "provider": "GROK",
       "avatarColor": "#fff",
       "description": "xAI Realtime",
       "apiStyle": "OPENAI",
-      "endpoint": "https://api.grok.x.ai/v1/chat/completions",
+      "endpoint": "https://api.x.ai/v1/chat/completions",
       "modelName": "grok-beta",
       "isSimulated": false
     },

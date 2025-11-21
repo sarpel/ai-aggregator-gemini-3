@@ -19,7 +19,7 @@ export const streamGemini = async (
   let generationTimer: any = null;
 
   try {
-    onUpdate({ status: ModelStatus.CONNECTING, text: '', progress: 5 });
+    onUpdate({ status: ModelStatus.CONNECTING, text: '', progress: 5, tokenCount: 0 });
     const startTime = Date.now();
 
     const ai = new GoogleGenAI({ apiKey });
@@ -32,6 +32,7 @@ export const streamGemini = async (
       }
     }, APP_TIMEOUTS.connectionTimeoutMs);
 
+    // Correct SDK Usage for Gemini 2.5
     const responseStream = await ai.models.generateContentStream({
       model: 'gemini-2.5-flash',
       contents: [{ parts: [{ text: prompt }] }],
@@ -64,7 +65,8 @@ export const streamGemini = async (
         onUpdate({ 
           text: fullText, 
           latency: Date.now() - startTime,
-          progress: Math.min(90, 10 + (fullText.length / 10)) 
+          progress: Math.min(90, 10 + (fullText.length / 10)),
+          tokenCount: Math.ceil(fullText.length / 4)
         });
       }
     }
@@ -75,7 +77,8 @@ export const streamGemini = async (
         status: ModelStatus.COMPLETED, 
         text: fullText, 
         progress: 100,
-        latency: Date.now() - startTime
+        latency: Date.now() - startTime,
+        tokenCount: Math.ceil(fullText.length / 4)
         });
     }
 

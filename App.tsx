@@ -11,6 +11,7 @@ import StatusMatrix from './components/core/StatusMatrix';
 import ResponseViewer from './components/core/ResponseViewer';
 import CredentialManager from './components/core/CredentialManager';
 import CyberButton from './components/ui/CyberButton';
+import CyberTooltip from './components/ui/CyberTooltip';
 import { Send, RotateCcw, Trash2 } from 'lucide-react';
 
 // Initialize state dynamically based on AVAILABLE_MODELS from config
@@ -75,6 +76,19 @@ function reducer(state: AppState, action: AppAction): AppState {
         isProcessing: true,
         modelResponses: resetResponses,
         consensus: { ...state.consensus, status: ConsensusStatus.ANALYZING, text: '', contributors: [] }
+      };
+    case 'RETRY_REQUEST':
+      return {
+        ...state,
+        isProcessing: true,
+        modelResponses: {
+            ...state.modelResponses,
+            [action.payload]: INITIAL_RESPONSE_STATE(action.payload)
+        },
+        consensus: {
+            ...state.consensus,
+            status: ConsensusStatus.ANALYZING 
+        }
       };
     case 'UPDATE_RESPONSE':
       const updatedModelResp = {
@@ -211,6 +225,70 @@ export default function App() {
     }
   };
 
+  const triggerModelStream = (providerId: ModelProvider, prompt: string) => {
+    const modelConfig = AVAILABLE_MODELS.find(m => m.id === providerId);
+    if (!modelConfig) return;
+
+    // 1. Simulated Mode
+    if (modelConfig.isSimulated) {
+      streamMock(providerId, prompt, (data) => {
+        dispatch({ type: 'UPDATE_RESPONSE', payload: { provider: providerId, data } });
+      });
+      return;
+    }
+
+    const apiKey = state.apiKeyMap[providerId] || process.env.API_KEY || '';
+
+    // 2. Gemini Native Mode
+    if (modelConfig.apiStyle === 'GEMINI') {
+      streamGemini(prompt, apiKey, (data) => {
+        dispatch({ type: 'UPDATE_RESPONSE', payload: { provider: providerId, data } });
+      });
+      return;
+    }
+
+    // 3. Custom/Generic API Mode (OpenAI/Anthropic Standards)
+    if (modelConfig.endpoint && modelConfig.modelName) {
+       const startTime = Date.now();
+       dispatch({ type: 'UPDATE_RESPONSE', payload: { provider: providerId, data: { status: ModelStatus.CONNECTING, progress: 5 } } });
+
+       streamCustomLLM(
+          modelConfig.endpoint,
+          apiKey,
+          modelConfig.modelName,
+          [{ role: 'user', content: prompt }],
+          modelConfig.apiStyle as 'OPENAI' | 'ANTHROPIC',
+          (text, status, error, metrics) => {
+              let modelStatus = ModelStatus.STREAMING;
+              if (status === ModelStatus.COMPLETED) modelStatus = ModelStatus.COMPLETED;
+              if (status === ModelStatus.ERROR) modelStatus = ModelStatus.ERROR;
+              if (status === ModelStatus.TIMEOUT) modelStatus = ModelStatus.TIMEOUT;
+
+              dispatch({ type: 'UPDATE_RESPONSE', payload: { 
+                  provider: providerId, 
+                  data: { 
+                      text, 
+                      status: modelStatus, 
+                      error,
+                      latency: metrics?.latency || (Date.now() - startTime),
+                      progress: status === ModelStatus.COMPLETED ? 100 : Math.min(90, 10 + (text.length / 10)),
+                      tokenCount: metrics?.tokenCount
+                  } 
+              }});
+          },
+          {
+              synthesizing: ModelStatus.STREAMING,
+              completed: ModelStatus.COMPLETED,
+              error: ModelStatus.ERROR,
+              timeout: ModelStatus.TIMEOUT
+          }
+       );
+    } else {
+      // Fallback if config is incomplete
+      dispatch({ type: 'UPDATE_RESPONSE', payload: { provider: providerId, data: { status: ModelStatus.ERROR, error: 'Invalid Config' } } });
+    }
+  };
+
   const handleSend = () => {
     if (!promptInput.trim() || state.isProcessing) return;
 
@@ -219,67 +297,16 @@ export default function App() {
     
     // Trigger API Calls Dynamically based on Config
     state.activeModels.forEach(providerId => {
-      const modelConfig = AVAILABLE_MODELS.find(m => m.id === providerId);
-      if (!modelConfig) return;
-
-      // 1. Simulated Mode
-      if (modelConfig.isSimulated) {
-        streamMock(providerId, promptInput, (data) => {
-          dispatch({ type: 'UPDATE_RESPONSE', payload: { provider: providerId, data } });
-        });
-        return;
-      }
-
-      const apiKey = state.apiKeyMap[providerId] || process.env.API_KEY || '';
-
-      // 2. Gemini Native Mode
-      if (modelConfig.apiStyle === 'GEMINI') {
-        streamGemini(promptInput, apiKey, (data) => {
-          dispatch({ type: 'UPDATE_RESPONSE', payload: { provider: providerId, data } });
-        });
-        return;
-      }
-
-      // 3. Custom/Generic API Mode (OpenAI/Anthropic Standards)
-      if (modelConfig.endpoint && modelConfig.modelName) {
-         const startTime = Date.now();
-         dispatch({ type: 'UPDATE_RESPONSE', payload: { provider: providerId, data: { status: ModelStatus.CONNECTING, progress: 5 } } });
-
-         streamCustomLLM(
-            modelConfig.endpoint,
-            apiKey,
-            modelConfig.modelName,
-            [{ role: 'user', content: promptInput }],
-            modelConfig.apiStyle as 'OPENAI' | 'ANTHROPIC',
-            (text, status, error) => {
-                let modelStatus = ModelStatus.STREAMING;
-                if (status === ModelStatus.COMPLETED) modelStatus = ModelStatus.COMPLETED;
-                if (status === ModelStatus.ERROR) modelStatus = ModelStatus.ERROR;
-                if (status === ModelStatus.TIMEOUT) modelStatus = ModelStatus.TIMEOUT;
-
-                dispatch({ type: 'UPDATE_RESPONSE', payload: { 
-                    provider: providerId, 
-                    data: { 
-                        text, 
-                        status: modelStatus, 
-                        error,
-                        latency: Date.now() - startTime,
-                        progress: status === ModelStatus.COMPLETED ? 100 : Math.min(90, 10 + (text.length / 10))
-                    } 
-                }});
-            },
-            {
-                synthesizing: ModelStatus.STREAMING,
-                completed: ModelStatus.COMPLETED,
-                error: ModelStatus.ERROR,
-                timeout: ModelStatus.TIMEOUT
-            }
-         );
-      } else {
-        // Fallback if config is incomplete
-        dispatch({ type: 'UPDATE_RESPONSE', payload: { provider: providerId, data: { status: ModelStatus.ERROR, error: 'Invalid Config' } } });
-      }
+        triggerModelStream(providerId, promptInput);
     });
+  };
+
+  const handleRetry = (providerId: ModelProvider) => {
+    if (!state.currentPrompt) return;
+    // Force synthesis to be able to trigger again if this model finishes
+    synthesisTriggeredRef.current = false;
+    dispatch({ type: 'RETRY_REQUEST', payload: providerId });
+    triggerModelStream(providerId, state.currentPrompt);
   };
 
   const handleClear = () => {
@@ -312,17 +339,18 @@ export default function App() {
           {/* Model Selector Pills */}
           <div className="flex flex-wrap gap-2 justify-center">
             {AVAILABLE_MODELS.map(model => (
-              <button
-                key={model.id}
-                onClick={() => dispatch({ type: 'TOGGLE_MODEL', payload: model.id })}
-                className={`px-3 py-1 text-[10px] font-bold font-mono uppercase border rounded-sm transition-all ${
-                  state.activeModels.includes(model.id)
-                    ? 'bg-cyber-gray text-white border-cyber-neon/50 shadow-[0_0_8px_rgba(0,243,255,0.2)]'
-                    : 'bg-transparent text-gray-600 border-gray-800 hover:border-gray-600'
-                }`}
-              >
-                {model.name}
-              </button>
+              <CyberTooltip key={model.id} content={`Toggle ${model.name} active/inactive`} position="bottom">
+                <button
+                  onClick={() => dispatch({ type: 'TOGGLE_MODEL', payload: model.id })}
+                  className={`px-3 py-1 text-[10px] font-bold font-mono uppercase border rounded-sm transition-all ${
+                    state.activeModels.includes(model.id)
+                      ? 'bg-cyber-gray text-white border-cyber-neon/50 shadow-[0_0_8px_rgba(0,243,255,0.2)]'
+                      : 'bg-transparent text-gray-600 border-gray-800 hover:border-gray-600'
+                  }`}
+                >
+                  {model.name}
+                </button>
+              </CyberTooltip>
             ))}
           </div>
         </div>
@@ -345,6 +373,7 @@ export default function App() {
               activeModels={state.activeModels}
               synthesizerConfig={state.synthesizerConfig}
               dispatch={dispatch}
+              onRetry={handleRetry}
             />
           </div>
         </div>
@@ -367,36 +396,40 @@ export default function App() {
               />
               <div className="flex items-center pr-2 gap-3">
                 {/* Distinct Clear Input Button */}
-                <button 
-                  onClick={handleClear}
-                  className="group flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-mono text-gray-500 hover:text-white hover:bg-white/5 transition-all"
-                  title="Clear Text Buffer"
-                  aria-label="Clear text input"
-                >
-                  <RotateCcw size={14} className="group-hover:-rotate-180 transition-transform duration-300" />
-                  <span className="hidden md:inline">CLEAR</span>
-                </button>
+                <CyberTooltip content="Clear text input buffer only" position="top">
+                  <button 
+                    onClick={handleClear}
+                    className="group flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-mono text-gray-500 hover:text-white hover:bg-white/5 transition-all"
+                    aria-label="Clear text input"
+                  >
+                    <RotateCcw size={14} className="group-hover:-rotate-180 transition-transform duration-300" />
+                    <span className="hidden md:inline">CLEAR</span>
+                  </button>
+                </CyberTooltip>
 
                 {/* Distinct New Query Button */}
-                <button 
-                  onClick={handleNewQuery}
-                  className="group flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-mono text-cyber-red/70 border border-transparent hover:border-cyber-red/50 hover:bg-cyber-red/10 hover:text-cyber-red transition-all"
-                  title="Reset Session & Clear Board"
-                  aria-label="Start new query"
-                >
-                  <Trash2 size={14} />
-                  <span className="hidden md:inline font-bold">NEW QUERY</span>
-                </button>
+                <CyberTooltip content="Reset all outputs, history and state (Keeps API Keys)" position="top">
+                  <button 
+                    onClick={handleNewQuery}
+                    className="group flex items-center gap-2 px-3 py-1.5 rounded-sm text-xs font-mono text-cyber-red/70 border border-transparent hover:border-cyber-red/50 hover:bg-cyber-red/10 hover:text-cyber-red transition-all"
+                    aria-label="Start new query"
+                  >
+                    <Trash2 size={14} />
+                    <span className="hidden md:inline font-bold">NEW QUERY</span>
+                  </button>
+                </CyberTooltip>
 
                 <div className="w-[1px] h-8 bg-gray-800 mx-1"></div>
                 
-                <CyberButton 
-                  onClick={handleSend} 
-                  disabled={state.isProcessing || !promptInput.trim()}
-                  loading={state.isProcessing && state.consensus.status !== ConsensusStatus.COMPLETED}
-                >
-                  <Send size={16} className="ml-1" />
-                </CyberButton>
+                <CyberTooltip content="Broadcast prompt to all active models" position="top">
+                  <CyberButton 
+                    onClick={handleSend} 
+                    disabled={state.isProcessing || !promptInput.trim()}
+                    loading={state.isProcessing && state.consensus.status !== ConsensusStatus.COMPLETED}
+                  >
+                    <Send size={16} className="ml-1" />
+                  </CyberButton>
+                </CyberTooltip>
               </div>
            </div>
            {/* Decorative Line */}

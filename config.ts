@@ -10,7 +10,7 @@ export const config = {
       "name": "Gemini 2.5 Flash",
       "provider": "GEMINI",
       "avatarColor": "#00f3ff",
-      "description": "Google Multimodal",
+      "description": "Google Multimodal Fast",
       "apiStyle": "GEMINI",
       "modelName": "gemini-2.5-flash",
       "isSimulated": false
@@ -20,7 +20,7 @@ export const config = {
       "name": "GPT-4o",
       "provider": "OPENAI",
       "avatarColor": "#10a37f",
-      "description": "OpenAI Flagship",
+      "description": "OpenAI Omni",
       "apiStyle": "OPENAI",
       "endpoint": "https://api.openai.com/v1/chat/completions",
       "modelName": "gpt-4o",
@@ -31,10 +31,10 @@ export const config = {
       "name": "Claude 3.5 Sonnet",
       "provider": "ANTHROPIC",
       "avatarColor": "#d97757",
-      "description": "Anthropic Reasoning",
+      "description": "Anthropic New Sonnet",
       "apiStyle": "ANTHROPIC",
       "endpoint": "https://api.anthropic.com/v1/messages",
-      "modelName": "claude-3-5-sonnet-20240620",
+      "modelName": "claude-3-5-sonnet-20241022",
       "isSimulated": false
     },
     {
@@ -42,10 +42,10 @@ export const config = {
       "name": "Grok 2",
       "provider": "GROK",
       "avatarColor": "#fff",
-      "description": "xAI Realtime",
+      "description": "xAI Grok 2",
       "apiStyle": "OPENAI",
       "endpoint": "https://api.x.ai/v1/chat/completions",
-      "modelName": "grok-beta",
+      "modelName": "grok-2-latest",
       "isSimulated": false
     },
     {
@@ -53,7 +53,7 @@ export const config = {
       "name": "DeepSeek V3",
       "provider": "DEEPSEEK",
       "avatarColor": "#4e61e6",
-      "description": "DeepSeek Coding",
+      "description": "DeepSeek Chat V3",
       "apiStyle": "OPENAI",
       "endpoint": "https://api.deepseek.com/chat/completions",
       "modelName": "deepseek-chat",

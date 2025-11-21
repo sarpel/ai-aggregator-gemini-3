@@ -241,7 +241,7 @@ export default function App() {
 
     // 2. Gemini Native Mode
     if (modelConfig.apiStyle === 'GEMINI') {
-      streamGemini(prompt, apiKey, (data) => {
+      streamGemini(modelConfig.modelName, prompt, apiKey, (data) => {
         dispatch({ type: 'UPDATE_RESPONSE', payload: { provider: providerId, data } });
       });
       return;

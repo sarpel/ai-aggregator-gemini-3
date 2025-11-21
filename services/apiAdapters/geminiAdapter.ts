@@ -4,6 +4,7 @@ import { ModelResponse, ModelStatus, ModelProvider } from "../../types";
 import { APP_TIMEOUTS } from "../../constants";
 
 export const streamGemini = async (
+  modelName: string,
   prompt: string,
   apiKey: string,
   onUpdate: (data: Partial<ModelResponse>) => void
@@ -34,7 +35,7 @@ export const streamGemini = async (
 
     // Correct SDK Usage for Gemini 2.5
     const responseStream = await ai.models.generateContentStream({
-      model: 'gemini-2.5-flash',
+      model: modelName || 'gemini-2.5-flash',
       contents: [{ parts: [{ text: prompt }] }],
     });
 

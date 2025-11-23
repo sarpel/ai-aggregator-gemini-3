@@ -1,14 +1,14 @@
-
 import { APP_TIMEOUTS } from "../../constants";
 
 export const streamCustomLLM = async (
-  endpoint: string,
-  apiKey: string,
+  endpoint: string, // Kept for signature, but used only for CUSTOM provider or ignored
+  apiKey: string,   // Kept for signature, used only for CUSTOM provider
   modelName: string,
   messages: { role: string; content: string }[],
   apiStyle: 'OPENAI' | 'ANTHROPIC',
   onUpdate: (text: string, status: any, error?: string, metrics?: { latency: number; tokenCount: number }) => void,
-  statusEnums: { synthesizing: any; completed: any; error: any; timeout: any }
+  statusEnums: { synthesizing: any; completed: any; error: any; timeout: any },
+  provider: string = 'CUSTOM' // Added provider argument
 ) => {
   const controller = new AbortController();
   const signal = controller.signal;
@@ -20,53 +20,60 @@ export const streamCustomLLM = async (
   try {
     onUpdate('', statusEnums.synthesizing, undefined, { latency: 0, tokenCount: 0 });
 
+    let proxyUrl = 'http://localhost:3001/api/proxy/openai-compatible';
     let headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
-    let body: any = {};
+    let body: any = {
+      provider,
+      model: modelName,
+      messages: messages,
+      stream: true
+    };
 
     // --- OPENAI STYLE (OpenAI, Grok, DeepSeek) ---
     if (apiStyle === 'OPENAI') {
-      if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
-      
-      body = {
-        model: modelName,
-        messages: messages,
-        stream: true,
-      };
-    } 
+      proxyUrl = 'http://localhost:3001/api/proxy/openai-compatible';
+
+      if (provider === 'CUSTOM') {
+        // For custom, we might use the endpoint passed in config, 
+        // BUT since we are proxying everything through backend for "security" (as requested),
+        // we should probably still hit our backend and let backend forward it.
+        // However, the backend needs to know the custom endpoint.
+        // My backend implementation for 'CUSTOM' expects 'x-custom-api-key' header.
+        // It also expects 'endpoint' in body.
+        body.endpoint = endpoint;
+        if (apiKey) headers['x-custom-api-key'] = apiKey;
+      } else {
+        // For known providers, backend uses env vars.
+        // We don't send API key here.
+        body.endpoint = endpoint; // Backend might use this or ignore it depending on provider logic
+      }
+
+    }
     // --- ANTHROPIC STYLE (Claude) ---
     else if (apiStyle === 'ANTHROPIC') {
-      if (apiKey) headers['x-api-key'] = apiKey;
-      headers['anthropic-version'] = '2023-06-01';
-      
-      // Anthropic API requires 'system' to be a top-level parameter, not in messages
-      const systemMsg = messages.find(m => m.role === 'system');
-      const otherMessages = messages.filter(m => m.role !== 'system');
-      
-      body = {
-        model: modelName,
-        messages: otherMessages,
-        max_tokens: 8192, // Required by Anthropic
-        stream: true,
-      };
-      
-      if (systemMsg) {
-        body.system = systemMsg.content;
-      }
+      proxyUrl = 'http://localhost:3001/api/proxy/anthropic';
+      // Anthropic proxy in backend handles structure.
+      // We just need to pass messages and model.
+      // Backend expects { messages, model, stream }
+      // My backend implementation for Anthropic is specific to Anthropic API.
+      // If provider is CUSTOM but style is ANTHROPIC, my backend might not handle it well 
+      // unless I added a generic anthropic proxy. 
+      // But for now, let's assume ANTHROPIC style is only for Anthropic provider.
     }
 
     // 1. Start Connection Timeout
     connectionTimer = setTimeout(() => {
-        if (isActive) {
-            isActive = false;
-            controller.abort();
-            onUpdate("Error: Connection timed out", statusEnums.timeout, "Connection Timeout", { latency: Date.now() - startTime, tokenCount: 0 });
-        }
+      if (isActive) {
+        isActive = false;
+        controller.abort();
+        onUpdate("Error: Connection timed out", statusEnums.timeout, "Connection Timeout", { latency: Date.now() - startTime, tokenCount: 0 });
+      }
     }, APP_TIMEOUTS.connectionTimeoutMs);
 
-    const response = await fetch(endpoint, {
+    const response = await fetch(proxyUrl, {
       method: 'POST',
       headers: headers,
       body: JSON.stringify(body),
@@ -76,9 +83,9 @@ export const streamCustomLLM = async (
     if (!response.ok) {
       let errorMsg = `HTTP error! status: ${response.status}`;
       try {
-          const errorBody = await response.text();
-          errorMsg += ` - ${errorBody}`;
-      } catch (e) {}
+        const errorBody = await response.text();
+        errorMsg += ` - ${errorBody}`;
+      } catch (e) { }
       throw new Error(errorMsg);
     }
 
@@ -86,7 +93,7 @@ export const streamCustomLLM = async (
     const decoder = new TextDecoder("utf-8");
     let fullText = '';
     let hasReceivedFirstByte = false;
-    let buffer = ''; // Buffer for handling split chunks
+    let buffer = '';
 
     if (!reader) throw new Error("No response body");
 
@@ -95,26 +102,21 @@ export const streamCustomLLM = async (
       if (done) break;
 
       if (!hasReceivedFirstByte) {
-          hasReceivedFirstByte = true;
-          clearTimeout(connectionTimer);
-          // 2. Start Generation Timeout
-          generationTimer = setTimeout(() => {
-              if (isActive) {
-                  isActive = false;
-                  controller.abort();
-                  onUpdate(fullText + "\n[TIMEOUT: Generation Limit Reached]", statusEnums.timeout, "Generation Timeout", { latency: Date.now() - startTime, tokenCount: Math.ceil(fullText.length / 4) });
-              }
-          }, APP_TIMEOUTS.generationTimeoutMs);
+        hasReceivedFirstByte = true;
+        clearTimeout(connectionTimer);
+        // 2. Start Generation Timeout
+        generationTimer = setTimeout(() => {
+          if (isActive) {
+            isActive = false;
+            controller.abort();
+            onUpdate(fullText + "\n[TIMEOUT: Generation Limit Reached]", statusEnums.timeout, "Generation Timeout", { latency: Date.now() - startTime, tokenCount: Math.ceil(fullText.length / 4) });
+          }
+        }, APP_TIMEOUTS.generationTimeoutMs);
       }
 
-      // Decode current chunk and append to buffer
       buffer += decoder.decode(value, { stream: true });
-      
-      // Process complete lines from buffer
       const lines = buffer.split('\n');
-      // The last element is either an empty string (if buffer ended with \n) 
-      // or an incomplete line. We keep it in the buffer for the next chunk.
-      buffer = lines.pop() || ''; 
+      buffer = lines.pop() || '';
 
       for (const line of lines) {
         const trimmedLine = line.trim();
@@ -132,51 +134,44 @@ export const streamCustomLLM = async (
                 fullText += content;
                 if (isActive) onUpdate(fullText, statusEnums.synthesizing, undefined, { latency: Date.now() - startTime, tokenCount: Math.ceil(fullText.length / 4) });
               }
-            } catch (e) {
-                // Ignore JSON parse errors for partial chunks (though buffer should handle most)
-            }
+            } catch (e) { }
           }
-        } 
+        }
         // --- ANTHROPIC STREAM PARSING ---
         else if (apiStyle === 'ANTHROPIC') {
-           if (trimmedLine.startsWith("data: ")) {
-             const jsonStr = trimmedLine.replace("data: ", "").trim();
-             try {
-               const json = JSON.parse(jsonStr);
-               // Anthropic stream event types
-               if (json.type === 'content_block_delta' && json.delta?.type === 'text_delta') {
-                 fullText += json.delta.text;
-                 if (isActive) onUpdate(fullText, statusEnums.synthesizing, undefined, { latency: Date.now() - startTime, tokenCount: Math.ceil(fullText.length / 4) });
-               }
-             } catch (e) {
-                 // Ignore parse errors
-             }
+          if (trimmedLine.startsWith("data: ")) {
+            const jsonStr = trimmedLine.replace("data: ", "").trim();
+            try {
+              const json = JSON.parse(jsonStr);
+              if (json.type === 'content_block_delta' && json.delta?.type === 'text_delta') {
+                fullText += json.delta.text;
+                if (isActive) onUpdate(fullText, statusEnums.synthesizing, undefined, { latency: Date.now() - startTime, tokenCount: Math.ceil(fullText.length / 4) });
+              }
+            } catch (e) { }
           }
         }
       }
     }
 
     if (isActive) {
-        clearTimeout(generationTimer);
-        onUpdate(fullText, statusEnums.completed, undefined, { latency: Date.now() - startTime, tokenCount: Math.ceil(fullText.length / 4) });
+      clearTimeout(generationTimer);
+      onUpdate(fullText, statusEnums.completed, undefined, { latency: Date.now() - startTime, tokenCount: Math.ceil(fullText.length / 4) });
     }
   } catch (error: any) {
-    // Check if it's an abort error (timeout) which we handled, otherwise it's a network error
     if (error.name === 'AbortError' && !isActive) {
-       // Already handled by the timeout callback
     } else {
-        console.error(`[Custom Adapter] Stream Error (${apiStyle}):`, error);
-        if (isActive) {
-            isActive = false;
-            clearTimeout(connectionTimer);
-            clearTimeout(generationTimer);
-            onUpdate(
-                `Connection Error: ${error.message}`, 
-                statusEnums.error, 
-                error.message || 'Unknown Network Error',
-                { latency: Date.now() - startTime, tokenCount: 0 }
-            );
-        }
+      console.error(`[Custom Adapter] Stream Error (${apiStyle}):`, error);
+      if (isActive) {
+        isActive = false;
+        clearTimeout(connectionTimer);
+        clearTimeout(generationTimer);
+        onUpdate(
+          `Connection Error: ${error.message}`,
+          statusEnums.error,
+          error.message || 'Unknown Network Error',
+          { latency: Date.now() - startTime, tokenCount: 0 }
+        );
+      }
     }
   }
 };

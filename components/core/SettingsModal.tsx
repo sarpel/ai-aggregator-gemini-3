@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, RotateCcw, Server, Network, Cpu, Thermometer, Zap, List } from 'lucide-react';
 import { SynthesizerConfig } from '../../types';
+import { buildApiUrl } from '../../apiConfig';
 import CyberTooltip from '../ui/CyberTooltip';
 
 interface SettingsModalProps {
@@ -37,18 +38,21 @@ export default function SettingsModal({ isOpen, onClose, config, onUpdateConfig 
         setFetchError(null);
 
         try {
-            // Use our backend proxy to avoid CORS
-            const params = new URLSearchParams({
-                endpoint: localConfig.customEndpoint,
-                provider: localConfig.provider,
-                apiStyle: localConfig.customApiStyle || 'OPENAI'
+            // FIX: Use POST instead of GET to avoid API key exposure in URL/query params
+            // This prevents API keys from being logged in server access logs
+            // FIX: Use centralized API configuration
+            const response = await fetch(buildApiUrl('/api/proxy/models'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    endpoint: localConfig.customEndpoint,
+                    provider: localConfig.provider,
+                    apiStyle: localConfig.customApiStyle || 'OPENAI',
+                    apiKey: localConfig.customApiKey || undefined
+                })
             });
-
-            if (localConfig.customApiKey) {
-                params.append('apiKey', localConfig.customApiKey);
-            }
-
-            const response = await fetch(`http://localhost:3002/api/proxy/models?${params.toString()}`);
 
             if (!response.ok) {
                 const err = await response.json();

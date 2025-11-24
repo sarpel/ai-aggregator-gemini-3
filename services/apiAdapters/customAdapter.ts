@@ -20,7 +20,7 @@ export const streamCustomLLM = async (
   try {
     onUpdate('', statusEnums.synthesizing, undefined, { latency: 0, tokenCount: 0 });
 
-    let proxyUrl = 'http://localhost:3001/api/proxy/openai-compatible';
+    let proxyUrl = 'http://localhost:3002/api/proxy/openai-compatible';
     let headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -54,7 +54,7 @@ export const streamCustomLLM = async (
     }
     // --- ANTHROPIC STYLE (Claude) ---
     else if (apiStyle === 'ANTHROPIC') {
-      proxyUrl = 'http://localhost:3001/api/proxy/anthropic';
+      proxyUrl = 'http://localhost:3002/api/proxy/anthropic';
       // Anthropic proxy in backend handles structure.
       // We just need to pass messages and model.
       // Backend expects { messages, model, stream }

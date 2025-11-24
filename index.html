@@ -86,26 +86,103 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #00f3ff; 
       }
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NeuroSync | AI Consensus Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              mono: ['"JetBrains Mono"', 'monospace'],
+              sans: ['"Rajdhani"', 'sans-serif'],
+            },
+            colors: {
+              cyber: {
+                black: '#050505',
+                dark: '#0a0a0a',
+                gray: '#1a1a1a',
+                neon: '#00f3ff',
+                pink: '#ff00ff',
+                yellow: '#fcee0a',
+                red: '#ff2a2a',
+              }
+            },
+            animation: {
+              'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'glitch': 'glitch 1s linear infinite',
+              'scanline': 'scanline 6s linear infinite',
+              'tv-on': 'tvOn 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards',
+              'pulse-green': 'pulseGreen 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'pulse-red': 'pulseRed 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            },
+            keyframes: {
+              glitch: {
+                '2%, 64%': { transform: 'translate(2px,0) skew(0deg)' },
+                '4%, 60%': { transform: 'translate(-2px,0) skew(0deg)' },
+                '62%': { transform: 'translate(0,0) skew(5deg)' },
+              },
+              scanline: {
+                '0%': { transform: 'translateY(-100%)' },
+                '100%': { transform: 'translateY(100%)' }
+              },
+              tvOn: {
+                '0%': { transform: 'scaleY(0)', opacity: '0' },
+                '60%': { transform: 'scaleY(1)', opacity: '1' },
+                '100%': { transform: 'scaleY(1)', opacity: '1' }
+              },
+              pulseGreen: {
+                '0%, 100%': { opacity: '0.1', backgroundColor: '#22c55e' },
+                '50%': { opacity: '0.25', backgroundColor: '#22c55e' }
+              },
+              pulseRed: {
+                '0%, 100%': { opacity: '0.1', backgroundColor: '#ef4444' },
+                '50%': { opacity: '0.25', backgroundColor: '#ef4444' }
+              },
+              delayedFadeIn: {
+                '0%, 99%': { opacity: '0' },
+                '100%': { opacity: '1' }
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        background-color: #050505;
+        color: #e0e0e0;
+        overflow-x: hidden;
+      }
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #0a0a0a; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #333; 
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #00f3ff; 
+      }
       
       /* Utility for delayed animation */
       .animate-delayed-fade-in {
         animation: delayedFadeIn 0.1s linear forwards;
       }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
-    "react-markdown": "https://aistudiocdn.com/react-markdown@^10.1.0"
-  }
-}
-</script>
-</head>
+  </head>
   <body>
     <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>

@@ -116,20 +116,6 @@ Click the **"SECURE VAULT"** button in the top right.
 *   **Gemini Key**: Required for the Gemini model and the default Consensus Engine.
 *   **Other Keys**: Enter keys for OpenAI, Anthropic, etc., if you plan to use those models.
 *   *Note: Keys are stored in RAM only and are wiped on page refresh.*
-
-### 2. Querying Models
-Type your prompt in the bottom console and click **SEND** (or press Enter).
-*   Models will light up and stream text in their mini-terminals.
-*   Status indicators:
-    *   **Green Pulse**: Active Streaming.
-    *   **Yellow Pulse**: Connection > 30s (Warning).
-    *   **Red Glitch**: Error or Timeout.
-
-### 3. Neural Consensus
-Once models finish (or timeout), the **Neural Synthesis** triggers automatically (if enabled) or can be triggered manually.
-*   Navigate to the **Consensus Tab**.
-*   Read the unified answer synthesized by the Core Engine.
-
 ### 4. Managing Session
 *   **Clear**: Clears the text input buffer.
 *   **New Query**: Resets all output screens and consensus state (keeps API keys).

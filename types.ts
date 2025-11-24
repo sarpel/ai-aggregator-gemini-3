@@ -1,9 +1,9 @@
 
 export enum ModelProvider {
   GEMINI = 'GEMINI',
-  OPENAI = 'OPENAI', 
-  ANTHROPIC = 'ANTHROPIC', 
-  GROK = 'GROK', 
+  OPENAI = 'OPENAI',
+  ANTHROPIC = 'ANTHROPIC',
+  GROK = 'GROK',
   DEEPSEEK = 'DEEPSEEK'
 }
 
@@ -18,8 +18,8 @@ export enum ModelStatus {
 
 export enum ConsensusStatus {
   IDLE = 'IDLE',
-  ANALYZING = 'ANALYZING', 
-  SYNTHESIZING = 'SYNTHESIZING', 
+  ANALYZING = 'ANALYZING',
+  SYNTHESIZING = 'SYNTHESIZING',
   COMPLETED = 'COMPLETED',
   ERROR = 'ERROR',
   TIMEOUT = 'TIMEOUT'
@@ -37,6 +37,9 @@ export interface SynthesizerConfig {
   customApiKey?: string;
   customApiStyle?: 'OPENAI' | 'ANTHROPIC';
   systemInstruction: string;
+  temperature?: number;
+  maxOutputTokens?: number;
+  reasoningEffort?: 'low' | 'medium' | 'high';
 }
 
 export interface ModelConfig {

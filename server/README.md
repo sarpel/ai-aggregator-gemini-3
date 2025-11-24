@@ -13,20 +13,6 @@ In a production deployment, you may want to hide API keys from the client browse
 
 ## Getting Started
 
-### 1. Install Dependencies
-```bash
-cd server
-npm install
-```
-
-### 2. Configuration
-Create a `.env` file in the `server/` directory:
-```env
-PORT=3001
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-...
-GEMINI_API_KEY=...
-```
 
 ### 3. Run Server
 ```bash
@@ -56,7 +42,7 @@ Once the proxy is implemented, update the frontend `config.ts` to point to your 
 // frontend/config.ts
 {
   "id": "OPENAI",
-  "endpoint": "http://localhost:3001/api/proxy/openai", // Point to your backend
+  "endpoint": "http://localhost:3002/api/proxy/openai", // Point to your backend
   // ...
 }
 ```

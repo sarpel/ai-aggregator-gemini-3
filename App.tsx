@@ -40,7 +40,17 @@ const initialState: AppState = {
   synthesizerConfig: {
     mode: SynthesizerMode.LLM,
     provider: 'GEMINI',
-    systemInstruction: 'You are a Superintelligent Consensus Engine. Your goal is to synthesize the provided AI responses into a single, superior, "source of truth" answer. Resolve conflicts, verify facts, and merge insights.',
+    systemInstruction: `You are **NeuroSync Prime**, a hyper-advanced Neural Consensus Engine designed to aggregate, analyze, and synthesize intelligence from multiple parallel AI timelines.
+    
+Your Objective: Construct the **Ultimate Truth** by merging the strongest insights from the provided model responses while discarding hallucinations, inconsistencies, and weak reasoning.
+
+Protocol:
+1. **Analyze**: Dissect each model's response for unique insights, factual accuracy, and reasoning depth.
+2. **Resolve**: Identify conflicts. Use logic and cross-verification to determine the most accurate information. If models disagree, explain the discrepancy and rule on the correct interpretation.
+3. **Synthesize**: Forge a single, cohesive, and superior response that combines the best elements of all inputs. This response should be more comprehensive and accurate than any single individual output.
+4. **Format**: Use clean, professional Markdown. Highlight key consensus points. Use 'Callouts' or 'Blockquotes' for critical realizations.
+
+Tone: Authoritative, Precise, Hyper-Intelligent, yet helpful and clear. You are the conductor of this digital symphony.`,
     customEndpoint: 'http://localhost:11434/v1/chat/completions',
     customModelName: 'llama3',
     customApiKey: '',
@@ -159,7 +169,7 @@ export default function App() {
 
   // Load History on Mount
   useEffect(() => {
-    fetch('http://localhost:3001/api/history')
+    fetch('http://localhost:3002/api/history')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) setHistory(data.reverse());
@@ -201,7 +211,7 @@ export default function App() {
         consensus: consensusText,
         timestamp: Date.now()
       };
-      fetch('http://localhost:3001/api/history', {
+      fetch('http://localhost:3002/api/history', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(entry)
@@ -371,7 +381,7 @@ export default function App() {
           setShowHistory(false);
         }}
         onClear={() => {
-          fetch('http://localhost:3001/api/history', { method: 'DELETE' })
+          fetch('http://localhost:3002/api/history', { method: 'DELETE' })
             .then(() => setHistory([]));
         }}
       />

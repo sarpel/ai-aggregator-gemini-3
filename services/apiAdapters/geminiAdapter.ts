@@ -23,7 +23,7 @@ export const streamGemini = async (
       }
     }, APP_TIMEOUTS.connectionTimeoutMs);
 
-    const response = await fetch('http://localhost:3001/api/proxy/gemini', {
+    const response = await fetch('http://localhost:3002/api/proxy/gemini', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, RotateCcw, Server, Network, Cpu, Thermometer, Zap, List } from 'lucide-react';
 import { SynthesizerConfig } from '../../types';
+import { buildApiUrl } from '../../apiConfig';
 import CyberTooltip from '../ui/CyberTooltip';
 
 interface SettingsModalProps {
@@ -39,7 +40,8 @@ export default function SettingsModal({ isOpen, onClose, config, onUpdateConfig 
         try {
             // FIX: Use POST instead of GET to avoid API key exposure in URL/query params
             // This prevents API keys from being logged in server access logs
-            const response = await fetch('http://localhost:3002/api/proxy/models', {
+            // FIX: Use centralized API configuration
+            const response = await fetch(buildApiUrl('/api/proxy/models'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

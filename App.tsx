@@ -1,6 +1,7 @@
 import React, { useReducer, useEffect, useRef, useState } from 'react';
 import { AppState, AppAction, ModelProvider, ModelStatus, SynthesizerMode, ConsensusStatus } from './types';
 import { INITIAL_RESPONSE_STATE, AVAILABLE_MODELS } from './constants';
+import { getApiUrl } from './apiConfig';
 import { streamGemini } from './services/apiAdapters/geminiAdapter';
 import { streamMock } from './services/apiAdapters/mockAdapter';
 import { streamCustomLLM } from './services/apiAdapters/customAdapter';
@@ -172,7 +173,7 @@ export default function App() {
   useEffect(() => {
     const controller = new AbortController();
     
-    fetch('http://localhost:3002/api/history', { signal: controller.signal })
+    fetch(getApiUrl('history'), { signal: controller.signal })
       .then(res => {
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
@@ -271,7 +272,7 @@ export default function App() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      fetch('http://localhost:3002/api/history', {
+      fetch(getApiUrl('history'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(entry),
@@ -483,7 +484,7 @@ export default function App() {
           setShowHistory(false);
         }}
         onClear={() => {
-          fetch('http://localhost:3002/api/history', { method: 'DELETE' })
+          fetch(getApiUrl('history'), { method: 'DELETE' })
             .then(() => setHistory([]));
         }}
       />

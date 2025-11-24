@@ -1,5 +1,6 @@
 import { ModelResponse, ModelStatus } from "../../types";
 import { APP_TIMEOUTS } from "../../constants";
+import { getApiUrl } from "../../apiConfig";
 
 export const streamGemini = async (
   modelName: string,
@@ -33,7 +34,7 @@ export const streamGemini = async (
       }
     }, APP_TIMEOUTS.connectionTimeoutMs);
 
-    const response = await fetch('http://localhost:3002/api/proxy/gemini', {
+    const response = await fetch(getApiUrl('geminiProxy'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

@@ -1,4 +1,5 @@
 import { APP_TIMEOUTS } from "../../constants";
+import { getApiUrl } from "../../apiConfig";
 
 export const streamCustomLLM = async (
   endpoint: string, // Kept for signature, but used only for CUSTOM provider or ignored
@@ -33,7 +34,8 @@ export const streamCustomLLM = async (
     onUpdate('', statusEnums.synthesizing, undefined, { latency: 0, tokenCount: 0 });
 
     // FIX: Corrected port number - should be 3002, not 3001
-    let proxyUrl = 'http://localhost:3002/api/proxy/openai-compatible';
+    // FIX: Use centralized API configuration
+    let proxyUrl = getApiUrl('openaiProxy');
     let headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -47,8 +49,8 @@ export const streamCustomLLM = async (
 
     // --- OPENAI STYLE (OpenAI, Grok, DeepSeek) ---
     if (apiStyle === 'OPENAI') {
-      // FIX: Use consistent port 3002 for all proxies
-      proxyUrl = 'http://localhost:3002/api/proxy/openai-compatible';
+      // FIX: Use consistent configuration for all proxies
+      proxyUrl = getApiUrl('openaiProxy');
 
       if (provider === 'CUSTOM') {
         // For custom, we might use the endpoint passed in config, 
@@ -68,7 +70,7 @@ export const streamCustomLLM = async (
     }
     // --- ANTHROPIC STYLE (Claude) ---
     else if (apiStyle === 'ANTHROPIC') {
-      proxyUrl = 'http://localhost:3002/api/proxy/anthropic';
+      proxyUrl = getApiUrl('anthropicProxy');
       // Anthropic proxy in backend handles structure.
       // We just need to pass messages and model.
       // Backend expects { messages, model, stream }

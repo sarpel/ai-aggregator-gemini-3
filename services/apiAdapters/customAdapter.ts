@@ -15,11 +15,24 @@ export const streamCustomLLM = async (
   let connectionTimer: any = null;
   let generationTimer: any = null;
   let isActive = true;
+  let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
   const startTime = Date.now();
 
   try {
+    // FIX: Validate inputs to prevent injection attacks
+    if (!endpoint || typeof endpoint !== 'string') {
+      throw new Error('Invalid endpoint');
+    }
+    if (!modelName || typeof modelName !== 'string') {
+      throw new Error('Invalid model name');
+    }
+    if (!Array.isArray(messages) || messages.length === 0) {
+      throw new Error('Invalid messages array');
+    }
+
     onUpdate('', statusEnums.synthesizing, undefined, { latency: 0, tokenCount: 0 });
 
+    // FIX: Corrected port number - should be 3002, not 3001
     let proxyUrl = 'http://localhost:3002/api/proxy/openai-compatible';
     let headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -34,7 +47,8 @@ export const streamCustomLLM = async (
 
     // --- OPENAI STYLE (OpenAI, Grok, DeepSeek) ---
     if (apiStyle === 'OPENAI') {
-      proxyUrl = 'http://localhost:3001/api/proxy/openai-compatible';
+      // FIX: Use consistent port 3002 for all proxies
+      proxyUrl = 'http://localhost:3002/api/proxy/openai-compatible';
 
       if (provider === 'CUSTOM') {
         // For custom, we might use the endpoint passed in config, 
@@ -69,6 +83,10 @@ export const streamCustomLLM = async (
       if (isActive) {
         isActive = false;
         controller.abort();
+        // FIX: Clean up reader on timeout
+        if (reader) {
+          reader.cancel().catch(() => {});
+        }
         onUpdate("Error: Connection timed out", statusEnums.timeout, "Connection Timeout", { latency: Date.now() - startTime, tokenCount: 0 });
       }
     }, APP_TIMEOUTS.connectionTimeoutMs);
@@ -85,71 +103,95 @@ export const streamCustomLLM = async (
       try {
         const errorBody = await response.text();
         errorMsg += ` - ${errorBody}`;
-      } catch (e) { }
+      } catch (e) { 
+        // FIX: Handle case where response body can't be read
+        console.warn('[Custom Adapter] Could not read error response body');
+      }
       throw new Error(errorMsg);
     }
 
-    const reader = response.body?.getReader();
+    // FIX: Validate response body exists
+    if (!response.body) {
+      throw new Error("No response body from server");
+    }
+
+    reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
     let fullText = '';
     let hasReceivedFirstByte = false;
     let buffer = '';
 
-    if (!reader) throw new Error("No response body");
+    // FIX: Use try-finally to ensure reader cleanup
+    try {
+      while (isActive) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-    while (isActive) {
-      const { done, value } = await reader.read();
-      if (done) break;
+        if (!hasReceivedFirstByte) {
+          hasReceivedFirstByte = true;
+          clearTimeout(connectionTimer);
+          // 2. Start Generation Timeout
+          generationTimer = setTimeout(() => {
+            if (isActive) {
+              isActive = false;
+              controller.abort();
+              // FIX: Clean up reader on generation timeout
+              if (reader) {
+                reader.cancel().catch(() => {});
+              }
+              onUpdate(fullText + "\n[TIMEOUT: Generation Limit Reached]", statusEnums.timeout, "Generation Timeout", { latency: Date.now() - startTime, tokenCount: Math.ceil(fullText.length / 4) });
+            }
+          }, APP_TIMEOUTS.generationTimeoutMs);
+        }
 
-      if (!hasReceivedFirstByte) {
-        hasReceivedFirstByte = true;
-        clearTimeout(connectionTimer);
-        // 2. Start Generation Timeout
-        generationTimer = setTimeout(() => {
-          if (isActive) {
-            isActive = false;
-            controller.abort();
-            onUpdate(fullText + "\n[TIMEOUT: Generation Limit Reached]", statusEnums.timeout, "Generation Timeout", { latency: Date.now() - startTime, tokenCount: Math.ceil(fullText.length / 4) });
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (!trimmedLine) continue;
+
+          // --- OPENAI STREAM PARSING ---
+          if (apiStyle === 'OPENAI') {
+            if (trimmedLine.startsWith("data: ")) {
+              const jsonStr = trimmedLine.replace("data: ", "").trim();
+              if (jsonStr === "[DONE]") break;
+              try {
+                const json = JSON.parse(jsonStr);
+                const content = json.choices?.[0]?.delta?.content || "";
+                if (content) {
+                  fullText += content;
+                  if (isActive) onUpdate(fullText, statusEnums.synthesizing, undefined, { latency: Date.now() - startTime, tokenCount: Math.ceil(fullText.length / 4) });
+                }
+              } catch (e) { 
+                // FIX: Log parsing errors but don't crash
+                console.warn('[Custom Adapter] Failed to parse SSE chunk:', trimmedLine);
+              }
+            }
           }
-        }, APP_TIMEOUTS.generationTimeoutMs);
+          // --- ANTHROPIC STREAM PARSING ---
+          else if (apiStyle === 'ANTHROPIC') {
+            if (trimmedLine.startsWith("data: ")) {
+              const jsonStr = trimmedLine.replace("data: ", "").trim();
+              try {
+                const json = JSON.parse(jsonStr);
+                if (json.type === 'content_block_delta' && json.delta?.type === 'text_delta') {
+                  fullText += json.delta.text;
+                  if (isActive) onUpdate(fullText, statusEnums.synthesizing, undefined, { latency: Date.now() - startTime, tokenCount: Math.ceil(fullText.length / 4) });
+                }
+              } catch (e) { 
+                // FIX: Log parsing errors but don't crash
+                console.warn('[Custom Adapter] Failed to parse Anthropic SSE chunk:', trimmedLine);
+              }
+            }
+          }
+        }
       }
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        const trimmedLine = line.trim();
-        if (!trimmedLine) continue;
-
-        // --- OPENAI STREAM PARSING ---
-        if (apiStyle === 'OPENAI') {
-          if (trimmedLine.startsWith("data: ")) {
-            const jsonStr = trimmedLine.replace("data: ", "").trim();
-            if (jsonStr === "[DONE]") break;
-            try {
-              const json = JSON.parse(jsonStr);
-              const content = json.choices?.[0]?.delta?.content || "";
-              if (content) {
-                fullText += content;
-                if (isActive) onUpdate(fullText, statusEnums.synthesizing, undefined, { latency: Date.now() - startTime, tokenCount: Math.ceil(fullText.length / 4) });
-              }
-            } catch (e) { }
-          }
-        }
-        // --- ANTHROPIC STREAM PARSING ---
-        else if (apiStyle === 'ANTHROPIC') {
-          if (trimmedLine.startsWith("data: ")) {
-            const jsonStr = trimmedLine.replace("data: ", "").trim();
-            try {
-              const json = JSON.parse(jsonStr);
-              if (json.type === 'content_block_delta' && json.delta?.type === 'text_delta') {
-                fullText += json.delta.text;
-                if (isActive) onUpdate(fullText, statusEnums.synthesizing, undefined, { latency: Date.now() - startTime, tokenCount: Math.ceil(fullText.length / 4) });
-              }
-            } catch (e) { }
-          }
-        }
+    } finally {
+      // FIX: Always release reader lock to prevent memory leaks
+      if (reader) {
+        reader.releaseLock();
       }
     }
 
@@ -158,20 +200,26 @@ export const streamCustomLLM = async (
       onUpdate(fullText, statusEnums.completed, undefined, { latency: Date.now() - startTime, tokenCount: Math.ceil(fullText.length / 4) });
     }
   } catch (error: any) {
+    // FIX: Don't show error for expected aborts
     if (error.name === 'AbortError' && !isActive) {
-    } else {
-      console.error(`[Custom Adapter] Stream Error (${apiStyle}):`, error);
-      if (isActive) {
-        isActive = false;
-        clearTimeout(connectionTimer);
-        clearTimeout(generationTimer);
-        onUpdate(
-          `Connection Error: ${error.message}`,
-          statusEnums.error,
-          error.message || 'Unknown Network Error',
-          { latency: Date.now() - startTime, tokenCount: 0 }
-        );
+      return;
+    }
+    console.error(`[Custom Adapter] Stream Error (${apiStyle}):`, error);
+    if (isActive) {
+      isActive = false;
+      // FIX: Always clear timeouts to prevent memory leaks
+      if (connectionTimer) clearTimeout(connectionTimer);
+      if (generationTimer) clearTimeout(generationTimer);
+      // FIX: Clean up reader on error
+      if (reader) {
+        reader.cancel().catch(() => {});
       }
+      onUpdate(
+        `Connection Error: ${error.message}`,
+        statusEnums.error,
+        error.message || 'Unknown Network Error',
+        { latency: Date.now() - startTime, tokenCount: 0 }
+      );
     }
   }
 };

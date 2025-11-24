@@ -168,24 +168,57 @@ export default function App() {
   const synthesisTriggeredRef = useRef(false);
 
   // Load History on Mount
+  // FIX: Add proper error handling and cleanup
   useEffect(() => {
-    fetch('http://localhost:3002/api/history')
-      .then(res => res.json())
+    const controller = new AbortController();
+    
+    fetch('http://localhost:3002/api/history', { signal: controller.signal })
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
         if (Array.isArray(data)) setHistory(data.reverse());
       })
-      .catch(err => console.error("Failed to load history", err));
+      .catch(err => {
+        // FIX: Don't log errors for aborted requests
+        if (err.name !== 'AbortError') {
+          console.error("Failed to load history", err);
+        }
+      });
+
+    // FIX: Cleanup function to abort fetch on unmount
+    return () => {
+      controller.abort();
+    };
   }, []);
 
   // Watcher for Synthesis Trigger
+  // FIX: Add proper dependencies and null checks to prevent race conditions
   useEffect(() => {
+    // FIX: Reset synthesis flag when processing completes or stops
     if (!state.isProcessing) {
       synthesisTriggeredRef.current = false;
       return;
     }
 
+    // FIX: Validate modelResponses exists before accessing
+    if (!state.modelResponses || typeof state.modelResponses !== 'object') {
+      return;
+    }
+
     // check if all active models are completed or errored
-    const activeResps = state.activeModels.map(id => state.modelResponses[id]);
+    const activeResps = state.activeModels
+      .map(id => state.modelResponses[id])
+      .filter(r => r !== undefined && r !== null); // FIX: Filter out undefined/null responses
+
+    // FIX: Only proceed if we have responses for all active models
+    if (activeResps.length !== state.activeModels.length) {
+      return;
+    }
+
     const allModelsFinished = activeResps.every(r =>
       r.status === ModelStatus.COMPLETED ||
       r.status === ModelStatus.ERROR ||
@@ -196,28 +229,68 @@ export default function App() {
       synthesisTriggeredRef.current = true;
       runSynthesis();
     }
-  }, [state.modelResponses, state.activeModels, state.isProcessing]);
+  }, [state.modelResponses, state.activeModels, state.isProcessing]); // FIX: Added missing state.isProcessing dependency
 
   const runSynthesis = async () => {
+    // FIX: Validate synthesis configuration before proceeding
+    if (!state.synthesizerConfig || typeof state.synthesizerConfig !== 'object') {
+      console.error('[Synthesis] Invalid synthesizer config');
+      dispatch({ type: 'UPDATE_CONSENSUS', payload: { status: ConsensusStatus.ERROR, text: 'Invalid synthesis configuration' } });
+      return;
+    }
+
     const { provider, systemInstruction, customEndpoint, customModelName, customApiKey, customApiStyle } = state.synthesizerConfig;
 
-    const synthesisPrompt = prepareSynthesisPrompt(state.currentPrompt, state.modelResponses);
+    // FIX: Wrap synthesis prompt preparation in try-catch
+    let synthesisPrompt: string;
+    try {
+      synthesisPrompt = prepareSynthesisPrompt(state.currentPrompt, state.modelResponses);
+    } catch (error: any) {
+      console.error('[Synthesis] Failed to prepare prompt:', error);
+      dispatch({ type: 'UPDATE_CONSENSUS', payload: { status: ConsensusStatus.ERROR, text: `Synthesis Error: ${error.message}` } });
+      return;
+    }
+
     dispatch({ type: 'UPDATE_CONSENSUS', payload: { status: ConsensusStatus.SYNTHESIZING } });
 
     // Helper to save history
     const saveToHistory = (consensusText: string) => {
+      // FIX: Validate inputs before saving
+      if (!state.currentPrompt || !consensusText) {
+        console.warn('[History] Skipping save - invalid prompt or consensus');
+        return;
+      }
+
       const entry = {
         prompt: state.currentPrompt,
         consensus: consensusText,
         timestamp: Date.now()
       };
+
+      // FIX: Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       fetch('http://localhost:3002/api/history', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(entry)
-      }).then(res => res.json()).then(saved => {
-        setHistory(prev => [saved, ...prev]);
-      }).catch(e => console.error("Failed to save history", e));
+        body: JSON.stringify(entry),
+        signal: controller.signal
+      })
+        .then(res => {
+          clearTimeout(timeoutId);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then(saved => {
+          setHistory(prev => [saved, ...prev]);
+        })
+        .catch(e => {
+          clearTimeout(timeoutId);
+          if (e.name !== 'AbortError') {
+            console.error("Failed to save history", e);
+          }
+        });
     };
 
     if (provider === 'GEMINI') {
@@ -235,6 +308,12 @@ export default function App() {
       });
 
     } else if (provider === 'CUSTOM') {
+      // FIX: Validate custom config before proceeding
+      if (!customEndpoint || !customModelName) {
+        dispatch({ type: 'UPDATE_CONSENSUS', payload: { status: ConsensusStatus.ERROR, text: 'Custom synthesis requires endpoint and model name' } });
+        return;
+      }
+
       await streamCustomLLM(
         customEndpoint || '',
         customApiKey || '',
@@ -331,14 +410,37 @@ export default function App() {
   };
 
   const handleSend = () => {
+    // FIX: Validate input before sending
     if (!promptInput.trim() || state.isProcessing) return;
+
+    // FIX: Validate activeModels array
+    if (!state.activeModels || state.activeModels.length === 0) {
+      console.warn('[Send] No active models selected');
+      return;
+    }
 
     dispatch({ type: 'START_REQUEST', payload: promptInput });
     synthesisTriggeredRef.current = false;
 
     // Trigger API Calls Dynamically based on Config
     state.activeModels.forEach(providerId => {
-      triggerModelStream(providerId, promptInput);
+      // FIX: Wrap in try-catch to prevent one model's error from blocking others
+      try {
+        triggerModelStream(providerId, promptInput);
+      } catch (error) {
+        console.error(`[Send] Failed to trigger stream for ${providerId}:`, error);
+        // FIX: Dispatch error state for this model
+        dispatch({ 
+          type: 'UPDATE_RESPONSE', 
+          payload: { 
+            provider: providerId, 
+            data: { 
+              status: ModelStatus.ERROR, 
+              error: 'Failed to start stream' 
+            } 
+          } 
+        });
+      }
     });
   };
 

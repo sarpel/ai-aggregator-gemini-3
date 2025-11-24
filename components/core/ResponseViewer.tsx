@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ModelProvider, ModelResponse, ConsensusResult, ModelStatus, AppAction, SynthesizerConfig } from '../../types';
 import { AVAILABLE_MODELS } from '../../constants';
 import ReactMarkdown from 'react-markdown';
+import rehypeSanitize from 'rehype-sanitize';
 import { Copy, Check, Terminal, Layers, Cpu, Settings, RotateCcw } from 'lucide-react';
 import SettingsModal from './SettingsModal';
 import CyberTooltip from '../ui/CyberTooltip';
@@ -54,9 +55,11 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({ responses, consensus, a
   const renderContent = (content: string, isCode: boolean = false) => {
     if (!content) return <div className="text-gray-600 italic font-mono">Initialized. Awaiting data stream...</div>;
 
+    // FIX: Sanitize markdown to prevent XSS attacks
+    // rehype-sanitize removes potentially dangerous HTML/scripts from markdown
     return (
       <div className="prose prose-invert max-w-none prose-p:text-sm prose-pre:bg-black prose-pre:border prose-pre:border-cyber-gray">
-        <ReactMarkdown>{content}</ReactMarkdown>
+        <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{content}</ReactMarkdown>
       </div>
     );
   };

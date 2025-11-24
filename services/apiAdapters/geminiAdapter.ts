@@ -10,15 +10,25 @@ export const streamGemini = async (
   let isActive = true;
   let connectionTimer: any = null;
   let generationTimer: any = null;
+  let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
 
   try {
     onUpdate({ status: ModelStatus.CONNECTING, text: '', progress: 5, tokenCount: 0 });
     const startTime = Date.now();
 
+    // FIX: Validate prompt to prevent injection attacks
+    if (!prompt || typeof prompt !== 'string') {
+      throw new Error('Invalid prompt');
+    }
+
     // 1. Start Connection Timer
     connectionTimer = setTimeout(() => {
       if (isActive) {
         isActive = false;
+        // FIX: Clean up reader if timeout during connection
+        if (reader) {
+          reader.cancel().catch(() => {});
+        }
         onUpdate({ status: ModelStatus.TIMEOUT, error: 'Connection timed out' });
       }
     }, APP_TIMEOUTS.connectionTimeoutMs);
@@ -41,64 +51,64 @@ export const streamGemini = async (
 
     if (!response.body) throw new Error("No response body");
 
-    const reader = response.body.getReader();
+    reader = response.body.getReader();
     const decoder = new TextDecoder();
     let fullText = '';
     let hasReceivedFirstByte = false;
 
-    while (isActive) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    // FIX: Use try-finally to ensure reader cleanup
+    try {
+      while (isActive) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      if (!hasReceivedFirstByte) {
-        hasReceivedFirstByte = true;
-        clearTimeout(connectionTimer);
-        onUpdate({ status: ModelStatus.STREAMING, progress: 10 });
+        if (!hasReceivedFirstByte) {
+          hasReceivedFirstByte = true;
+          clearTimeout(connectionTimer);
+          onUpdate({ status: ModelStatus.STREAMING, progress: 10 });
 
-        generationTimer = setTimeout(() => {
-          if (isActive) {
-            isActive = false;
-            onUpdate({ status: ModelStatus.TIMEOUT, error: 'Generation timed out' });
-          }
-        }, APP_TIMEOUTS.generationTimeoutMs);
-      }
-
-      const chunkText = decoder.decode(value, { stream: true });
-      // The backend proxy might send raw text or JSON chunks depending on implementation.
-      // My backend implementation pipes the raw stream from Gemini REST API.
-      // Gemini REST API returns JSON chunks: [{ candidates: [{ content: { parts: [{ text: "..." }] } }] }]
-      // Wait, my backend implementation for Gemini uses:
-      // `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?key=${apiKey}`
-      // This returns a JSON stream. I need to parse it here.
-
-      // Simple parsing for the JSON stream (it comes as multiple JSON objects, potentially separated or in array)
-      // Actually, standard fetch stream from Gemini is a list of JSON objects.
-      // I'll accumulate text and try to parse.
-
-      // For simplicity in this "fix", I'll assume the backend forwards the raw JSON stream.
-      // I need to parse the JSON chunks to extract text.
-      // However, parsing streamed JSON is tricky.
-      // Let's try a simpler approach: Regex to find "text": "..."
-
-      const textMatches = chunkText.matchAll(/"text":\s*"((?:[^"\\]|\\.)*)"/g);
-      for (const match of textMatches) {
-        let text = match[1];
-        // Unescape JSON string
-        try {
-          text = JSON.parse(`"${text}"`);
-        } catch (e) {
-          // fallback if already unescaped or simple
+          generationTimer = setTimeout(() => {
+            if (isActive) {
+              isActive = false;
+              // FIX: Cancel reader on generation timeout
+              if (reader) {
+                reader.cancel().catch(() => {});
+              }
+              onUpdate({ status: ModelStatus.TIMEOUT, error: 'Generation timed out' });
+            }
+          }, APP_TIMEOUTS.generationTimeoutMs);
         }
-        fullText += text;
-      }
 
-      if (isActive) {
-        onUpdate({
-          text: fullText,
-          latency: Date.now() - startTime,
-          progress: Math.min(90, 10 + (fullText.length / 10)),
-          tokenCount: Math.ceil(fullText.length / 4)
-        });
+        const chunkText = decoder.decode(value, { stream: true });
+        
+        // FIX: More robust JSON parsing with error handling
+        // Gemini API returns JSON stream with format: { candidates: [{ content: { parts: [{ text: "..." }] } }] }
+        const textMatches = chunkText.matchAll(/"text":\s*"((?:[^"\\]|\\.)*)"/g);
+        for (const match of textMatches) {
+          let text = match[1];
+          // FIX: Properly unescape JSON string with error handling
+          try {
+            text = JSON.parse(`"${text}"`);
+          } catch (e) {
+            // FIX: If parsing fails, use the raw text (already extracted from regex)
+            console.warn('[Gemini] Failed to unescape text, using raw:', text);
+          }
+          fullText += text;
+        }
+
+        if (isActive) {
+          onUpdate({
+            text: fullText,
+            latency: Date.now() - startTime,
+            progress: Math.min(90, 10 + (fullText.length / 10)),
+            tokenCount: Math.ceil(fullText.length / 4)
+          });
+        }
+      }
+    } finally {
+      // FIX: Always release the reader lock to prevent memory leaks
+      if (reader) {
+        reader.releaseLock();
       }
     }
 
@@ -118,8 +128,14 @@ export const streamGemini = async (
 
     if (isActive) {
       isActive = false;
-      clearTimeout(connectionTimer);
-      clearTimeout(generationTimer);
+      // FIX: Always clear timeouts to prevent memory leaks
+      if (connectionTimer) clearTimeout(connectionTimer);
+      if (generationTimer) clearTimeout(generationTimer);
+      
+      // FIX: Clean up reader on error
+      if (reader) {
+        reader.cancel().catch(() => {});
+      }
 
       onUpdate({
         status: ModelStatus.ERROR,

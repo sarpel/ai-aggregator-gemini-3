@@ -9,7 +9,14 @@ interface State {
   hasError: boolean;
   error: Error | null;
   errorInfo: React.ErrorInfo | null;
+  reloadAttempts: number;
 }
+
+// FIX: Track reload attempts in localStorage to prevent infinite loops
+const MAX_RELOAD_ATTEMPTS = 3;
+const RELOAD_ATTEMPTS_KEY = 'errorBoundaryReloadAttempts';
+const RELOAD_ATTEMPTS_TIMESTAMP_KEY = 'errorBoundaryReloadTimestamp';
+const RELOAD_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Error Boundary Component
@@ -22,16 +29,34 @@ class ErrorBoundary extends Component<Props, State> {
     this.state = {
       hasError: false,
       error: null,
-      errorInfo: null
+      errorInfo: null,
+      reloadAttempts: this.getReloadAttempts()
     };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  getReloadAttempts(): number {
+    try {
+      const lastTimestamp = localStorage.getItem(RELOAD_ATTEMPTS_TIMESTAMP_KEY);
+      const attempts = localStorage.getItem(RELOAD_ATTEMPTS_KEY);
+      
+      // Reset attempts if last reload was more than 5 minutes ago
+      if (lastTimestamp && Date.now() - parseInt(lastTimestamp) > RELOAD_TIMEOUT_MS) {
+        localStorage.removeItem(RELOAD_ATTEMPTS_KEY);
+        localStorage.removeItem(RELOAD_ATTEMPTS_TIMESTAMP_KEY);
+        return 0;
+      }
+      
+      return attempts ? parseInt(attempts) : 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  static getDerivedStateFromError(error: Error): Partial<State> {
     // Update state so the next render will show the fallback UI
     return {
       hasError: true,
-      error,
-      errorInfo: null
+      error
     };
   }
 
@@ -48,12 +73,35 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   handleReset = () => {
+    // FIX: Prevent infinite reload loops by tracking attempts
+    const newAttempts = this.state.reloadAttempts + 1;
+    
+    if (newAttempts >= MAX_RELOAD_ATTEMPTS) {
+      // If we've tried too many times, just clear state and stay on error page
+      console.error('Max reload attempts reached. Please manually refresh or clear localStorage.');
+      this.setState({
+        hasError: true,
+        error: new Error('Maximum reload attempts exceeded. Please clear your browser cache and reload manually.'),
+        errorInfo: null,
+        reloadAttempts: newAttempts
+      });
+      return;
+    }
+    
+    try {
+      localStorage.setItem(RELOAD_ATTEMPTS_KEY, newAttempts.toString());
+      localStorage.setItem(RELOAD_ATTEMPTS_TIMESTAMP_KEY, Date.now().toString());
+    } catch (e) {
+      console.warn('Could not save reload attempts to localStorage');
+    }
+    
+    // Clear the error state first, then reload
     this.setState({
       hasError: false,
       error: null,
       errorInfo: null
     });
-    // Reload the page to reset the app state
+    
     window.location.reload();
   };
 
@@ -92,9 +140,12 @@ class ErrorBoundary extends Component<Props, State> {
 
             <button
               onClick={this.handleReset}
-              className="px-6 py-3 bg-red-500/20 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all font-mono text-sm rounded"
+              disabled={this.state.reloadAttempts >= MAX_RELOAD_ATTEMPTS}
+              className="px-6 py-3 bg-red-500/20 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all font-mono text-sm rounded disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              RESET APPLICATION
+              {this.state.reloadAttempts >= MAX_RELOAD_ATTEMPTS 
+                ? 'MAX RETRIES REACHED - CLEAR CACHE' 
+                : `RESET APPLICATION (${this.state.reloadAttempts}/${MAX_RELOAD_ATTEMPTS})`}
             </button>
           </div>
         </div>

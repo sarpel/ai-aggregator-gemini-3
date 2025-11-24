@@ -1,7 +1,7 @@
 import React, { useReducer, useEffect, useRef, useState } from 'react';
 import { AppState, AppAction, ModelProvider, ModelStatus, SynthesizerMode, ConsensusStatus } from './types';
 import { INITIAL_RESPONSE_STATE, AVAILABLE_MODELS } from './constants';
-import { getApiUrl } from './apiConfig';
+import { getApiUrl, API_CONFIG } from './apiConfig';
 import { streamGemini } from './services/apiAdapters/geminiAdapter';
 import { streamMock } from './services/apiAdapters/mockAdapter';
 import { streamCustomLLM } from './services/apiAdapters/customAdapter';
@@ -268,9 +268,9 @@ export default function App() {
         timestamp: Date.now()
       };
 
-      // FIX: Add timeout to prevent hanging
+      // FIX: Add timeout to prevent hanging (use centralized config)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.timeouts.historySave);
 
       fetch(getApiUrl('history'), {
         method: 'POST',

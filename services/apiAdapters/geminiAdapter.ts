@@ -92,7 +92,8 @@ export const streamGemini = async (
             text = JSON.parse(`"${text}"`);
           } catch (e) {
             // FIX: If parsing fails, use the raw text (already extracted from regex)
-            console.warn('[Gemini] Failed to unescape text, using raw:', text);
+            // Don't log raw text to avoid exposing sensitive content in logs
+            console.warn('[Gemini] Failed to unescape JSON text chunk');
           }
           fullText += text;
         }

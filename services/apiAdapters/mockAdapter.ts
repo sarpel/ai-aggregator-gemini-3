@@ -84,12 +84,12 @@ export const streamMock = async (
     }
   } catch (error) {
     // FIX: Handle unexpected errors and clean up
-    console.error('[Mock Adapter] Error:', error);
+    console.error('[Mock Adapter] Unexpected error:', error instanceof Error ? error.message : 'Unknown error');
     cleanup();
     if (isActive) {
       onUpdate({
         status: ModelStatus.ERROR,
-        error: 'Mock adapter error'
+        error: `Mock adapter error: ${error instanceof Error ? error.message : 'Unknown error'}`
       });
     }
   }

@@ -107,7 +107,7 @@ export const streamCustomLLM = async (
         errorMsg += ` - ${errorBody}`;
       } catch (e) { 
         // FIX: Handle case where response body can't be read
-        console.warn('[Custom Adapter] Could not read error response body');
+        console.warn(`[Custom Adapter] Could not read error response body for HTTP ${response.status}`);
       }
       throw new Error(errorMsg);
     }

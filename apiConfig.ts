@@ -30,8 +30,9 @@ export const API_CONFIG = {
   
   // Request timeouts (in milliseconds)
   timeouts: {
-    default: 30000,    // 30 seconds
+    default: 30000,      // 30 seconds
     longRunning: 120000, // 2 minutes for streaming operations
+    historySave: 10000,  // 10 seconds for saving history
   }
 };
 

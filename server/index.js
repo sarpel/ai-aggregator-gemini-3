@@ -123,12 +123,15 @@ app.post('/api/proxy/openai-compatible', async (req, res) => {
     // FIX: Block requests to internal/private IPs in production
     if (process.env.NODE_ENV === 'production') {
       const hostname = url.hostname.toLowerCase();
-      if (hostname === 'localhost' || hostname === '127.0.0.1' || 
-          hostname.startsWith('192.168.') || hostname.startsWith('10.') ||
-          hostname.startsWith('172.16.') || hostname.startsWith('172.17.') ||
-          hostname.startsWith('172.18.') || hostname.startsWith('172.19.') ||
-          hostname.startsWith('172.2') || hostname.startsWith('172.30.') ||
-          hostname.startsWith('172.31.')) {
+      // RFC 1918 Private IP ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+      // Also block localhost and loopback
+      if (hostname === 'localhost' || 
+          hostname === '127.0.0.1' || 
+          hostname.match(/^127\./) ||  // All 127.x.x.x
+          hostname.startsWith('10.') || 
+          hostname.startsWith('192.168.') ||
+          hostname.match(/^172\.(1[6-9]|2[0-9]|3[0-1])\./)  // 172.16.0.0 - 172.31.255.255
+      ) {
         return res.status(400).json({ error: 'Invalid endpoint: internal IPs not allowed in production' });
       }
     }
@@ -465,8 +468,13 @@ app.post('/api/proxy/models', async (req, res) => {
     const url = new URL(endpoint.toString());
     if (process.env.NODE_ENV === 'production') {
       const hostname = url.hostname.toLowerCase();
-      if (hostname === 'localhost' || hostname === '127.0.0.1' || 
-          hostname.startsWith('192.168.') || hostname.startsWith('10.')) {
+      // RFC 1918 Private IP ranges + localhost
+      if (hostname === 'localhost' || 
+          hostname === '127.0.0.1' || 
+          hostname.match(/^127\./) ||
+          hostname.startsWith('10.') ||
+          hostname.startsWith('192.168.') ||
+          hostname.match(/^172\.(1[6-9]|2[0-9]|3[0-1])\./)) {
         return res.status(400).json({ error: 'Invalid endpoint: internal IPs not allowed in production' });
       }
     }

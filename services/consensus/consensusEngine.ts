@@ -7,11 +7,11 @@ export const prepareSynthesisPrompt = (
 ): string => {
   // FIX: Validate inputs to prevent crashes
   if (!originalPrompt || typeof originalPrompt !== 'string') {
-    throw new Error('Invalid original prompt');
+    throw new Error('Invalid original prompt: must be a non-empty string');
   }
 
   if (!responses || typeof responses !== 'object') {
-    throw new Error('Invalid responses object');
+    throw new Error('Invalid responses object: must be a valid object');
   }
 
   // FIX: Add null/undefined checks before filtering

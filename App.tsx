@@ -342,6 +342,8 @@ export default function App() {
         await streamViaProxy({
           modelId,
           apiStyle: config.apiStyle,
+          endpoint: config.endpoint,
+          modelName: config.modelName,
           messages,
           onChunk: (chunk) => {
             accumulatedText += chunk;

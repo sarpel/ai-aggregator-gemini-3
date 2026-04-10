@@ -46,7 +46,7 @@ npx tsc --noEmit     # Type check
 
 ### Frontend Structure
 - **App.tsx**: Main state machine (useReducer), orchestrates model streams + synthesis
-- **components/core/**: 
+- **components/core/**:
   - `SettingsPanel.tsx` — Model CRUD UI, replaces CredentialManager
   - `ResponseViewer.tsx` — Shows model responses + consensus tab
   - `StatusMatrix.tsx` — Grid of model status cards
@@ -76,7 +76,7 @@ User Input → App.tsx → proxyAdapter.ts → POST /api/proxy/{style}
 ## Code Conventions
 
 ### TypeScript
-- Strict mode enabled
+- Strict mode not enabled (strict mode is enabled in the server)
 - No `any` types in production code
 - Explicit return types on exported functions
 - Interface naming: `PascalCase`

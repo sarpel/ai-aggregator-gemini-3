@@ -73,8 +73,13 @@ function getRouteId(req: Request): string | null {
 }
 
 router.get('/models', async (_req: Request, res: Response) => {
-  const models = getModelConfigs();
-  res.json(models);
+  try {
+    const models = getModelConfigs();
+    res.json(models);
+  } catch (err) {
+    console.error('[GET /models] Error:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 router.post('/models', async (req: Request, res: Response) => {
@@ -115,10 +120,15 @@ router.post('/models', async (req: Request, res: Response) => {
     isCustom: true,
   };
 
-  await saveModelConfig(config);
+  try {
+    await saveModelConfig(config);
 
-  if (body.apiKey !== undefined) {
-    await setApiKey(config.id, body.apiKey);
+    if (body.apiKey !== undefined) {
+      await setApiKey(config.id, body.apiKey);
+    }
+  } catch (err) {
+    console.error('[POST /models] Error saving config/key:', err);
+    return res.status(500).json({ error: 'Failed to save model configuration' });
   }
 
   return res.status(201).json(config);
@@ -137,10 +147,11 @@ router.put('/models/:id', async (req: Request, res: Response) => {
     return res.status(404).json({ error: 'Model not found' });
   }
 
-  const nextApiStyle = body.apiStyle ?? existingConfig.apiStyle;
   if (body.apiStyle !== undefined && !isApiStyle(body.apiStyle)) {
     return badRequest(res, 'Field "apiStyle" must be one of OPENAI, ANTHROPIC, GEMINI');
   }
+
+  const nextApiStyle = body.apiStyle ?? existingConfig.apiStyle;
 
   if (body.endpoint !== undefined) {
     if (typeof body.endpoint !== 'string') {
@@ -182,10 +193,15 @@ router.put('/models/:id', async (req: Request, res: Response) => {
     ...(body.description !== undefined ? { description: body.description } : {}),
   };
 
-  await saveModelConfig(updatedConfig);
+  try {
+    await saveModelConfig(updatedConfig);
 
-  if (body.apiKey !== undefined) {
-    await setApiKey(routeId, body.apiKey);
+    if (body.apiKey !== undefined) {
+      await setApiKey(routeId, body.apiKey);
+    }
+  } catch (err) {
+    console.error(`[PUT /models/${routeId}] Error saving config/key:`, err);
+    return res.status(500).json({ error: 'Failed to update model configuration' });
   }
 
   return res.status(200).json(updatedConfig);
@@ -207,7 +223,14 @@ router.delete('/models/:id', async (req: Request, res: Response) => {
     return res.status(403).json({ error: 'Cannot delete default models' });
   }
 
-  await deleteModelConfig(routeId);
+  try {
+    await deleteModelConfig(routeId);
+  } catch (err) {
+    console.error(`[DELETE /models/${routeId}] Error:`, err);
+    const errMessage = err instanceof Error ? err.message : String(err);
+    return res.status(500).json({ error: 'Failed to delete model', details: errMessage });
+  }
+
   return res.status(204).send();
 });
 
@@ -228,7 +251,13 @@ router.post('/models/:id/key', async (req: Request, res: Response) => {
     return res.status(404).json({ error: 'Model not found' });
   }
 
-  await setApiKey(routeId, body.apiKey);
+  try {
+    await setApiKey(routeId, body.apiKey);
+  } catch (err) {
+    console.error(`[POST /models/${routeId}/key] Error:`, err);
+    return res.status(500).json({ error: 'Failed to save API key' });
+  }
+
   return res.status(200).json({ success: true });
 });
 
@@ -244,8 +273,13 @@ router.get('/models/:id/key/status', async (req: Request, res: Response) => {
     return res.status(404).json({ error: 'Model not found' });
   }
 
-  const key = getApiKey(routeId);
-  return res.status(200).json({ hasKey: key !== null });
+  try {
+    const key = getApiKey(routeId);
+    return res.status(200).json({ hasKey: key !== null });
+  } catch (err) {
+    console.error(`[GET /models/${routeId}/key/status] Error:`, err);
+    return res.status(500).json({ error: 'Failed to check key status' });
+  }
 });
 
 export default router;

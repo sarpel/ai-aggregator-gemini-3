@@ -16,7 +16,7 @@
 *   **Multi-Model Orchestration**: Query Gemini, OpenAI, Anthropic, Grok, and DeepSeek simultaneously.
 *   **Dynamic Model Configuration**: Add, edit, and remove model providers via the Settings Panel. No code changes required.
 *   **Secure Backend Proxy**: All LLM traffic routes through backend proxy. API keys stored encrypted (AES-256-GCM), never exposed to frontend.
-*   **Real-Time Streaming**: 
+*   **Real-Time Streaming**:
     *   Visual "Matrix-style" data feeds.
     *   Animated terminal windows for every model ("Mini TV" effect).
     *   Auto-scrolling command console.
@@ -77,7 +77,10 @@ Create `server/.env`:
 ```env
 PORT=3001
 ENCRYPTION_KEY=your-secure-encryption-key-min-32-chars
+# DB_PATH=./custom-db.json  # Optional: override default database file location (defaults to server/db.json)
 ```
+
+> **`PORT`** and **`ENCRYPTION_KEY`** are required. **`DB_PATH`** is optional and defaults to `db.json` in the server directory.
 
 ---
 
@@ -162,7 +165,9 @@ Once models finish, **Neural Synthesis** triggers automatically.
 │   ├── db.ts              # Encrypted file storage (lowdb)
 │   ├── proxy.ts           # SSE proxy handlers
 │   ├── routes.ts          # Model CRUD API
-│   └── __tests__/         # Integration tests
+│   └── __tests__/         # Tests
+│       ├── integration/   # Integration tests
+│       └── unit/          # Unit tests
 ├── App.tsx                # Main React app + state machine
 ├── config.ts              # Default model configs
 ├── types.ts               # Global TypeScript definitions
@@ -191,7 +196,7 @@ Once models finish, **Neural Synthesis** triggers automatically.
 # Frontend tests
 npm run test
 
-# Backend tests  
+# Backend tests
 cd server && npm run test
 
 # Full test suite
@@ -205,7 +210,7 @@ npx vitest run
 <!-- AUTO-GENERATED: scripts -->
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start Vite dev server (port 3000) |
+| `npm run dev` | Start Vite dev server (port 5173) |
 | `npm run build` | Build for production |
 | `npm run test` | Run Vitest tests |
 | `cd server && npm run dev` | Start backend (port 3001, auto-reload) |
@@ -232,5 +237,5 @@ npx vitest run
 
 ---
 
-*System Status: ONLINE*  
+*System Status: ONLINE*
 *Protocol: SECURE*

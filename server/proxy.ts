@@ -56,19 +56,30 @@ export async function handleOpenAIProxy(
     return;
   }
 
+  const endpoint = req.body.endpoint;
+  if (!endpoint) {
+    res.status(400).json({ error: 'Field "endpoint" is required' });
+    return;
+  }
+
   const controller = new AbortController();
   req.on('close', () => controller.abort());
 
   setSseHeaders(res);
 
+  const systemPrompt = req.body.systemPrompt;
+  const messagesWithSystem = systemPrompt
+    ? [{ role: 'system', content: systemPrompt }, ...req.body.messages]
+    : req.body.messages;
+
   const upstreamBody = {
     model: req.body.modelName,
-    messages: req.body.messages,
+    messages: messagesWithSystem,
     stream: true,
   };
 
   try {
-    const response = await fetch(req.body.endpoint ?? '', {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -110,23 +121,30 @@ export async function handleAnthropicProxy(
     return;
   }
 
+  const endpoint = req.body.endpoint;
+  if (!endpoint) {
+    res.status(400).json({ error: 'Field "endpoint" is required' });
+    return;
+  }
+
   const controller = new AbortController();
   req.on('close', () => controller.abort());
 
   setSseHeaders(res);
 
   const systemMsg = req.body.messages.find((message) => message.role === 'system');
+  const systemContent = req.body.systemPrompt ?? systemMsg?.content;
   const otherMessages = req.body.messages.filter((message) => message.role !== 'system');
   const upstreamBody = {
     model: req.body.modelName,
     messages: otherMessages,
     max_tokens: 8192,
     stream: true,
-    ...(systemMsg ? { system: systemMsg.content } : {}),
+    ...(systemContent ? { system: systemContent } : {}),
   };
 
   try {
-    const response = await fetch(req.body.endpoint ?? '', {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -170,12 +188,14 @@ export async function handleGeminiProxy(
   }
 
   const ai = new GoogleGenAI({ apiKey });
+  const systemPrompt = req.body.systemPrompt;
   const contents = req.body.messages
-    .filter((message) => message.role !== 'system')
     .map((message) => ({
-      role: message.role === 'user' ? 'user' : 'model',
+      role: message.role === 'user' ? 'user' : message.role === 'system' ? 'system' : 'model',
       parts: [{ text: message.content }],
     }));
+
+  const config = systemPrompt ? { systemInstruction: systemPrompt } : undefined;
 
   setSseHeaders(res);
 
@@ -193,10 +213,11 @@ export async function handleGeminiProxy(
     const responseStream = await ai.models.generateContentStream({
       model: req.body.modelName,
       contents,
+      ...(config ? { config } : {}),
     });
     responseIterator = responseStream[Symbol.asyncIterator]();
 
-    for await (const chunk of responseStream) {
+    for await (const chunk of responseIterator) {
       if (isClosed) {
         break;
       }

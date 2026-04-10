@@ -66,11 +66,13 @@ describe('SettingsPanel', () => {
       expect(screen.queryByText('LOADING NEURAL PATHWAYS...')).not.toBeInTheDocument();
     });
 
-    expect(screen.getByText('Model 1')).toBeInTheDocument();
-    expect(screen.getByText('Model 2')).toBeInTheDocument();
-    expect(screen.getByText('Model 3')).toBeInTheDocument();
-    expect(screen.getByText('Model 4')).toBeInTheDocument();
-    expect(screen.getByText('Model 5')).toBeInTheDocument();
+    const nameInputs = screen.getAllByDisplayValue(/Model \d/);
+    expect(nameInputs).toHaveLength(5);
+    expect(nameInputs[0]).toHaveValue('Model 1');
+    expect(nameInputs[1]).toHaveValue('Model 2');
+    expect(nameInputs[2]).toHaveValue('Model 3');
+    expect(nameInputs[3]).toHaveValue('Model 4');
+    expect(nameInputs[4]).toHaveValue('Model 5');
 
     const endpoints = screen.getAllByPlaceholderText('https://api...');
     expect(endpoints).toHaveLength(5);
@@ -91,7 +93,9 @@ describe('SettingsPanel', () => {
     const modelNames = screen.getAllByPlaceholderText('model-name');
     fireEvent.change(modelNames[0], { target: { value: 'gpt-4.1-mini' } });
 
-    expect(screen.getByText('gpt-4.1-mini')).toBeInTheDocument();
+    const updatedNameInputs = screen.getAllByDisplayValue('gpt-4.1-mini');
+    expect(updatedNameInputs.length).toBeGreaterThan(0);
+    expect(updatedNameInputs[0]).toHaveValue('gpt-4.1-mini');
   });
 
   it('adds custom model and saves correctly', async () => {

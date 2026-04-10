@@ -2,9 +2,9 @@
   "models": [
     {
       "id": "GEMINI",
-      "name": "Gemini 2.5 Flash",
-      "endpoint": "",
-      "modelName": "gemini-2.5-flash",
+      "name": "gemini-3.1-pro-preview",
+      "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:streamGenerateContent",
+      "modelName": "gemini-3.1-pro-preview",
       "apiStyle": "GEMINI",
       "avatarColor": "#00f3ff",
       "description": "Google Multimodal Fast",
@@ -22,9 +22,9 @@
     },
     {
       "id": "ANTHROPIC",
-      "name": "Claude 3.5 Sonnet",
+      "name": "claude-sonnet-4.6",
       "endpoint": "https://api.anthropic.com/v1/messages",
-      "modelName": "claude-3-5-sonnet-20241022",
+      "modelName": "claude-sonnet-4.6",
       "apiStyle": "ANTHROPIC",
       "avatarColor": "#d97757",
       "description": "Anthropic New Sonnet",
@@ -32,9 +32,9 @@
     },
     {
       "id": "GROK",
-      "name": "Grok 2",
-      "endpoint": "https://api.x.ai/v1/chat/completions",
-      "modelName": "grok-2-latest",
+      "name": "glm-5.1",
+      "endpoint": "https://api.z.ai/api/coding/paas/v4",
+      "modelName": "glm-5.1",
       "apiStyle": "OPENAI",
       "avatarColor": "#fff",
       "description": "xAI Grok 2",
@@ -42,9 +42,9 @@
     },
     {
       "id": "DEEPSEEK",
-      "name": "DeepSeek V3",
-      "endpoint": "https://api.deepseek.com/chat/completions",
-      "modelName": "deepseek-chat",
+      "name": "kimi-for-coding",
+      "endpoint": "https://api.kimi.com/coding/v1",
+      "modelName": "kimi-for-coding",
       "apiStyle": "OPENAI",
       "avatarColor": "#4e61e6",
       "description": "DeepSeek Chat V3",
@@ -52,23 +52,29 @@
     }
   ],
   "keys": {
-    "0ef96847-44e0-42bd-956f-fe94f6c3c914": {
-      "ciphertext": "2a281301ae78f25d836b5bca73aaa884e4",
-      "iv": "eb0cb9891205b375056fbcaf",
-      "tag": "857a6011f14d880ed1c1bd52e7e95792",
-      "salt": "3b7bec4643649616be87751b0924cd84cc4793237632e6f52ce8ebaf8aea70a1"
-    },
     "GEMINI": {
-      "ciphertext": "f48da0443e6739d52fa2107b29d4f4",
-      "iv": "67fd5ecd70eb09f00a8ac4cb",
-      "tag": "a345a3f6aad4efa5b07b2bdff13ed809",
-      "salt": "578d1510d0f06186678500a94105ebfb110fe745d9669bacdd0b5ebc9a8712e4"
+      "ciphertext": "e7e30fe4b57301f714a1c7a4514d5a8a03cda118aaf47eec870bb327c49b4cde344971b637a37f",
+      "iv": "b2caea89b20afacac7539f12",
+      "tag": "d43d3e415ceaf74cbe75a05d35b0ade7",
+      "salt": "28398a92ca272e492210ac4df7909c64c2dc34d414a52cb125638c6c9681f60f"
     },
-    "d201e6c9-3e3d-46a6-b8ce-2c5b5242ad74": {
-      "ciphertext": "d9fecb7fdd5202947f9d18",
-      "iv": "01e3db2e92837c41fafabca7",
-      "tag": "aa0cbb01adea50070ac855d065bd714e",
-      "salt": "dbad9c6569ef8ca0f9eb5c83fa084091526f0e9c2ff60f2386a551d1ddf13066"
+    "ANTHROPIC": {
+      "ciphertext": "792d1f94aa01263445e6f968b9c320cbdcb8a8c8e4b3ff7219dc0fab6b76f693b7c8b7a8f037c5ff27c088897fd4589b8880d80deb5765bc6898ff4bf62c2b16356b1201deee3cd1a64562a05824d31512c88f2287f5b00363ac6dc5afa56a5dbaad51a91052fcae53a97b01",
+      "iv": "3e6ce9c77dc95563682bc47f",
+      "tag": "e8c0456613fa15a4a09f067659cd435f",
+      "salt": "0f8baccfc2ab272fa6f6f278cabccd53bbadea9ce69a48955ada4475fdc2fcbb"
+    },
+    "GROK": {
+      "ciphertext": "d54199faf05fd732d35c8db122a79757f85fddf886f345ff6615726cac4cc251faa7000e7cf65ba1401256f657a944a397",
+      "iv": "05519938118e1d34ec163ae0",
+      "tag": "81fa26ad0f38dd0878bd5a1c9ada8049",
+      "salt": "954ba6132acc7fa1054f9ea2b97fa5f4bab410c36a218e430f52c68d2fb61bf3"
+    },
+    "DEEPSEEK": {
+      "ciphertext": "e69c8556caca4dd4e77af988a26d23ee0c15cb61753127ef1c844f9cd77687feeee6465d8d0f323b42b07c23d5e2816aac92e60f9ecd7819047bb63aa7a8cad7467bf3c6193dc2ad",
+      "iv": "d083cb43e9bded7b6d3bb04f",
+      "tag": "c28ec554ea2a7939edadb7bbf53e7dec",
+      "salt": "733e3bacc84490c575ff881cbdef8c3bd362fb80ee34f69a6541177366d75dec"
     }
   }
 }

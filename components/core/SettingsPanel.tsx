@@ -115,9 +115,15 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
     const isNew = !originalModels.find(m => m.id === id);
     if (!isNew) {
       try {
-        await fetch(`/api/models/${id}`, { method: 'DELETE' });
+        const deleteResponse = await fetch(`/api/models/${id}`, { method: 'DELETE' });
+        if (!deleteResponse.ok) {
+          const body = await deleteResponse.text().catch(() => '');
+          console.error(`Failed to delete model (status ${deleteResponse.status}):`, body);
+          return;
+        }
       } catch (e) {
         console.error('Failed to delete model', e);
+        return;
       }
     }
     setModels(prev => prev.filter(m => m.id !== id));
@@ -127,7 +133,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
     setSaving(true);
 
     try {
-      for (const model of models) {
+      const tasks = models.map(async (model) => {
         const isNew = !originalModels.find(m => m.id === model.id);
         const pendingApiKey = apiKeys[model.id]?.trim();
 
@@ -147,7 +153,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
           });
 
           if (!createResponse.ok) {
-            throw new Error(`Failed to create model ${model.name}: ${createResponse.status}`);
+            throw new Error(`Failed to create model "${model.name}" (${model.id}): ${createResponse.status}`);
           }
         } else {
           const original = originalModels.find(m => m.id === model.id);
@@ -178,10 +184,16 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
             });
 
             if (!updateResponse.ok) {
-              throw new Error(`Failed to update model ${model.name}: ${updateResponse.status}`);
+              throw new Error(`Failed to update model "${model.name}" (${model.id}): ${updateResponse.status}`);
             }
           }
         }
+      });
+
+      const results = await Promise.allSettled(tasks);
+      const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+      if (failures.length > 0) {
+        failures.forEach(f => console.error('Save error:', f.reason));
       }
 
       const refreshedModels = await loadModels();
@@ -196,7 +208,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
 
   const renderModelCard = (model: ModelConfig) => {
     const hasKey = keyStatuses[model.id] || !!apiKeys[model.id];
-    
+
     return (
       <div key={model.id} className="border border-cyan-500/20 hover:border-cyan-400/40 rounded-sm p-4 space-y-4 bg-cyber-gray/10 relative">
         <div className="flex justify-between items-center">
@@ -228,8 +240,8 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
             </div>
             <div className="flex gap-4">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input 
-                  type="radio" 
+                <input
+                  type="radio"
                   name={`apiStyle-${model.id}`}
                   checked={model.apiStyle === 'OPENAI'}
                   onChange={() => handleModelChange(model.id, 'apiStyle', 'OPENAI')}
@@ -238,8 +250,8 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
                 <span className="text-sm font-mono text-gray-300">OpenAI Compatible</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input 
-                  type="radio" 
+                <input
+                  type="radio"
                   name={`apiStyle-${model.id}`}
                   checked={model.apiStyle === 'ANTHROPIC'}
                   onChange={() => handleModelChange(model.id, 'apiStyle', 'ANTHROPIC')}
@@ -248,8 +260,8 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
                 <span className="text-sm font-mono text-gray-300">Anthropic</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input 
-                  type="radio" 
+                <input
+                  type="radio"
                   name={`apiStyle-${model.id}`}
                   checked={model.apiStyle === 'GEMINI'}
                   onChange={() => handleModelChange(model.id, 'apiStyle', 'GEMINI')}
@@ -264,8 +276,8 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
             <div className="text-xs text-gray-500">Endpoint URL</div>
             <div className="flex items-center bg-black border border-gray-700 focus-within:border-cyber-neon focus-within:shadow-[0_0_10px_rgba(0,255,255,0.3)]">
               <Server size={14} className="mx-2 text-gray-500" />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={model.endpoint || ''}
                 onChange={(e) => handleModelChange(model.id, 'endpoint', e.target.value)}
                 placeholder="https://api..."
@@ -276,8 +288,8 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
 
           <div className="space-y-2">
             <div className="text-xs text-gray-500">Model ID / Display Name</div>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={model.modelName || ''}
               onChange={(e) => handleModelChange(model.id, 'modelName', e.target.value)}
               placeholder="model-name"
@@ -289,14 +301,14 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
             <div className="text-xs text-gray-500">API Key</div>
             <div className="relative">
               <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={14} />
-              <input 
+              <input
                 type={showKeys[model.id] ? "text" : "password"}
                 value={apiKeys[model.id] || ''}
                 onChange={(e) => handleKeyChange(model.id, e.target.value)}
                 placeholder={keyStatuses[model.id] ? "Stored securely — enter new key to replace" : "Enter API Key"}
                 className="w-full bg-black border border-gray-700 text-white font-mono text-xs py-2 pl-10 pr-10 outline-none focus:border-cyber-neon focus:shadow-[0_0_10px_rgba(0,255,255,0.3)]"
               />
-              <button 
+              <button
                 type="button"
                 onClick={() => toggleShowKey(model.id)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
@@ -316,7 +328,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
       <div className="w-full max-w-3xl bg-cyber-black border border-cyber-neon shadow-[0_0_50px_rgba(0,243,255,0.1)] rounded-sm relative flex flex-col max-h-[90vh]">
-        
+
         {/* Header */}
         <div className="bg-cyber-gray/20 border-b border-cyber-neon/30 p-6 flex justify-between items-center shrink-0">
           <h2 className="text-2xl font-black tracking-tighter text-white flex items-center gap-3">
@@ -353,10 +365,10 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
                 </h3>
                 <div className="space-y-4">
                   {customModels.map(renderModelCard)}
-                  
-                  <CyberButton 
-                    onClick={handleAddCustomModel} 
-                    variant="secondary" 
+
+                  <CyberButton
+                    onClick={handleAddCustomModel}
+                    variant="secondary"
                     className="w-full flex justify-center items-center gap-2"
                   >
                     <Plus size={16} />

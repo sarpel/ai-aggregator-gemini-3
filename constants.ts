@@ -14,7 +14,8 @@ export const normalizeModelConfigs = (modelConfigs: IncompleteModelConfig[]): Mo
   modelConfigs.map(normalizeModelConfig)
 );
 
-export const getAvailableModels = (modelConfigs: ModelConfig[]): ModelConfig[] => normalizeModelConfigs(modelConfigs);
+export const getAvailableModels = (modelConfigs: ModelConfig[]): ModelConfig[] =>
+  normalizeModelConfigs(modelConfigs.filter((m) => m.enabled !== false));
 
 
 export const INITIAL_RESPONSE_STATE = (modelId: string) => ({

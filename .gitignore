@@ -25,7 +25,12 @@ dist-ssr
 .bug-perf-review
 .serena
 .sisyphus
-__tests__
+
+# Test-generated artifacts (do not ignore test source files)
+coverage/
+.nyc_output/
+*.lcov
+.cache/
 
 
 

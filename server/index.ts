@@ -34,12 +34,17 @@ app.post('/api/proxy/gemini', handleGeminiProxy);
 
 // Start Server
 async function startServer(): Promise<void> {
-  await initDb();
+  try {
+    await initDb();
 
-  app.listen(PORT, () => {
-    console.log(`\n⚡ [NEUROSYNC CORE] Backend Uplink Active on port ${PORT}`);
-    console.log(`   Health Check: http://localhost:${PORT}/health\n`);
-  });
+    app.listen(PORT, () => {
+      console.log(`\n⚡ [NEUROSYNC CORE] Backend Uplink Active on port ${PORT}`);
+      console.log(`   Health Check: http://localhost:${PORT}/health\n`);
+    });
+  } catch (error) {
+    console.error('[startServer] Fatal error during startup (initDb/PORT):', error);
+    process.exit(1);
+  }
 }
 
 void startServer();

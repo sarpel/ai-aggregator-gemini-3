@@ -37,16 +37,20 @@ const SynthesizerSettings: React.FC<SynthesizerSettingsProps> = ({ config, dispa
               <div className="space-y-2">
                  <label className="text-gray-400 font-mono text-xs font-bold uppercase tracking-widest">Synthesis Model</label>
                  <CyberTooltip content="Choose which AI model synthesizes the final answer" position="top">
-                   <select 
-                      value={config.modelId}
-                      onChange={(e) => handleChange('modelId', e.target.value)}
-                      className="w-full bg-black border border-gray-700 text-white font-mono p-2 focus:border-cyber-pink focus:outline-none"
-                   >
-                      {modelConfigs.map((model) => (
+                   <select
+                    value={modelConfigs.length === 0 ? '' : config.modelId}
+                    onChange={(e) => handleChange('modelId', e.target.value)}
+                    className="w-full bg-black border border-gray-700 text-white font-mono p-2 focus:border-cyber-pink focus:outline-none"
+                 >
+                    {modelConfigs.length === 0 ? (
+                      <option value="" disabled>Önce bir model ekleyin</option>
+                    ) : (
+                      modelConfigs.map((model) => (
                         <option key={model.id} value={model.id}>
                           {model.name}
                         </option>
-                      ))}
+                      ))
+                    )}
                    </select>
                  </CyberTooltip>
               </div>
@@ -55,7 +59,7 @@ const SynthesizerSettings: React.FC<SynthesizerSettingsProps> = ({ config, dispa
               <div className="space-y-2">
                 <label className="text-gray-400 font-mono text-xs font-bold uppercase tracking-widest">Master Directive (System Prompt)</label>
                 <CyberTooltip content="Define the persona and rules for the Consensus Engine" position="top">
-                    <textarea 
+                    <textarea
                         value={config.systemPrompt}
                         onChange={(e) => handleChange('systemPrompt', e.target.value)}
                         className="w-full h-32 bg-black border border-gray-700 text-cyber-pink font-mono text-sm p-3 focus:border-cyber-pink focus:outline-none resize-none"

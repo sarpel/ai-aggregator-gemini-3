@@ -60,7 +60,7 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 	useEffect(() => {
 		if (!scrollContainerRef.current) return;
 		const contentLength = currentContent.length;
-		if (contentLength < 0) return;
+		if (contentLength === 0) return;
 		const now = Date.now();
 		const THROTTLE_MS = 200;
 		if (now - lastScrollTimeRef.current < THROTTLE_MS) return;
@@ -197,7 +197,7 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
               `}
 						>
 							<div
-								className={`transition-all duration-300 transform ${isCopySuccess ? "scale-100" : "scale-100"}`}
+								className={`transition-all duration-300 transform ${isCopySuccess ? "scale-110" : "scale-100"}`}
 							>
 								{isCopySuccess ? <Check size={16} /> : <Copy size={14} />}
 							</div>

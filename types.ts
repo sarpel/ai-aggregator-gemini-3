@@ -43,6 +43,7 @@ export interface ModelConfig {
   apiKey?: string;
   isCustom: boolean;
   isSimulated: boolean;
+  enabled?: boolean;
 }
 
 export interface ChatMessage {

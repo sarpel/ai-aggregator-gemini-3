@@ -1,6 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { ModelResponse, ModelStatus, ModelProviderId } from "../../types";
+import { ModelResponse, ModelStatus } from "../../types";
 import { APP_TIMEOUTS } from "../../constants";
 
 export const streamGemini = async (
@@ -24,7 +24,7 @@ export const streamGemini = async (
     const startTime = Date.now();
 
     const ai = new GoogleGenAI({ apiKey });
-    
+
     // 1. Start Connection Timer
     connectionTimer = setTimeout(() => {
       if (isActive) {
@@ -50,7 +50,7 @@ export const streamGemini = async (
         hasReceivedFirstByte = true;
         clearTimeout(connectionTimer);
         onUpdate({ status: ModelStatus.STREAMING, progress: 10 });
-        
+
         generationTimer = setTimeout(() => {
            if (isActive) {
              isActive = false;
@@ -61,10 +61,10 @@ export const streamGemini = async (
 
       const chunkText = chunk.text || '';
       fullText += chunkText;
-      
+
       if (isActive) {
-        onUpdate({ 
-          text: fullText, 
+        onUpdate({
+          text: fullText,
           latency: Date.now() - startTime,
           progress: Math.min(90, 10 + (fullText.length / 10)),
           tokenCount: Math.ceil(fullText.length / 4)
@@ -74,9 +74,9 @@ export const streamGemini = async (
 
     if (isActive) {
         clearTimeout(generationTimer);
-        onUpdate({ 
-        status: ModelStatus.COMPLETED, 
-        text: fullText, 
+        onUpdate({
+        status: ModelStatus.COMPLETED,
+        text: fullText,
         progress: 100,
         latency: Date.now() - startTime,
         tokenCount: Math.ceil(fullText.length / 4)
@@ -86,16 +86,16 @@ export const streamGemini = async (
   } catch (error: any) {
     // Silent Error Handling: Log to console but don't crash app
     console.error("[Gemini Adapter] Error:", error);
-    
+
     if (isActive) {
         isActive = false;
         clearTimeout(connectionTimer);
         clearTimeout(generationTimer);
-        
+
         // Gracefully update status to ERROR so UI reflects it
-        onUpdate({ 
-          status: ModelStatus.ERROR, 
-          error: error.message || "Gemini connection failed" 
+        onUpdate({
+          status: ModelStatus.ERROR,
+          error: error.message || "Gemini connection failed"
         });
     }
   }

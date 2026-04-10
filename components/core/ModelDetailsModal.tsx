@@ -1,3 +1,4 @@
+import React from "react";
 import {
 	Activity,
 	AlertTriangle,
@@ -19,11 +20,11 @@ interface ModelDetailsModalProps {
 	onClose: () => void;
 }
 
-const ModelDetailsModal = ({
+export const ModelDetailsModal: React.FC<ModelDetailsModalProps> = ({
 	model,
 	response,
 	onClose,
-}: ModelDetailsModalProps) => {
+}): JSX.Element => {
 	const isError =
 		response.status === ModelStatus.ERROR ||
 		response.status === ModelStatus.TIMEOUT;

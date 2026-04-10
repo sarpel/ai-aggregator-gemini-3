@@ -1,7 +1,8 @@
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import { JSONFilePreset } from 'lowdb/node';
+import { Low } from 'lowdb';
+import { JSONFile } from 'lowdb/node';
 
 export interface EncryptedKey {
   ciphertext: string;
@@ -27,14 +28,14 @@ interface DbSchema {
 }
 
 const DEFAULT_MODELS: ModelConfigStored[] = [
-  { id: 'GEMINI', name: 'Gemini 2.5 Flash', endpoint: '', modelName: 'gemini-2.5-flash', apiStyle: 'GEMINI', avatarColor: '#00f3ff', description: 'Google Multimodal Fast', isCustom: false },
+  { id: 'GEMINI', name: 'Gemini 2.5 Flash', endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent', modelName: 'gemini-2.5-flash', apiStyle: 'GEMINI', avatarColor: '#00f3ff', description: 'Google Multimodal Fast', isCustom: false },
   { id: 'OPENAI', name: 'GPT-4o', endpoint: 'https://api.openai.com/v1/chat/completions', modelName: 'gpt-4o', apiStyle: 'OPENAI', avatarColor: '#10a37f', description: 'OpenAI Omni', isCustom: false },
   { id: 'ANTHROPIC', name: 'Claude 3.5 Sonnet', endpoint: 'https://api.anthropic.com/v1/messages', modelName: 'claude-3-5-sonnet-20241022', apiStyle: 'ANTHROPIC', avatarColor: '#d97757', description: 'Anthropic New Sonnet', isCustom: false },
   { id: 'GROK', name: 'Grok 2', endpoint: 'https://api.x.ai/v1/chat/completions', modelName: 'grok-2-latest', apiStyle: 'OPENAI', avatarColor: '#fff', description: 'xAI Grok 2', isCustom: false },
   { id: 'DEEPSEEK', name: 'DeepSeek V3', endpoint: 'https://api.deepseek.com/chat/completions', modelName: 'deepseek-chat', apiStyle: 'OPENAI', avatarColor: '#4e61e6', description: 'DeepSeek Chat V3', isCustom: false },
 ];
 
-let db: Awaited<ReturnType<typeof JSONFilePreset<DbSchema>>>;
+let db: Low<DbSchema>;
 let hasWarnedAboutFallbackKey = false;
 
 function getDbPath(): string {
@@ -56,7 +57,7 @@ function getMasterKey(): string {
   return 'dev-fallback-key-change-in-prod';
 }
 
-function ensureDb(): Awaited<ReturnType<typeof JSONFilePreset<DbSchema>>> {
+function ensureDb(): Low<DbSchema> {
   if (!db) {
     throw new Error('Database not initialized. Call initDb() first.');
   }
@@ -68,11 +69,8 @@ function cloneModelConfig(config: ModelConfigStored): ModelConfigStored {
   return { ...config };
 }
 
-async function persistDb(database: Awaited<ReturnType<typeof JSONFilePreset<DbSchema>>>): Promise<void> {
+async function persistDb(database: Low<DbSchema>): Promise<void> {
   await database.write();
-  const dbPath = getDbPath();
-  await mkdir(dirname(dbPath), { recursive: true });
-  await writeFile(dbPath, JSON.stringify(database.data, null, 2));
 }
 
 function encrypt(plaintext: string): EncryptedKey {
@@ -105,7 +103,11 @@ function decrypt(enc: EncryptedKey): string {
 }
 
 export async function initDb(): Promise<void> {
-  db = await JSONFilePreset<DbSchema>(getDbPath(), { models: [], keys: {} });
+  const dbPath = getDbPath();
+  await mkdir(dirname(dbPath), { recursive: true });
+  const adapter = new JSONFile<DbSchema>(dbPath);
+  db = new Low<DbSchema>(adapter, { models: [], keys: {} });
+  await db.read();
 
   if (db.data.models.length === 0) {
     db.data.models = DEFAULT_MODELS.map(cloneModelConfig);

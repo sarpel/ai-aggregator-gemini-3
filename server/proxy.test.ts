@@ -161,6 +161,7 @@ describe('proxy handlers', () => {
         }),
       }),
     );
+    expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/event-stream');
     expect(res.write).toHaveBeenNthCalledWith(1, 'data: {"x":1}\n\n');
     expect(res.write).toHaveBeenNthCalledWith(2, 'data: [DONE]\n\n');
     expect(res.flush).toHaveBeenCalledTimes(2);
@@ -239,6 +240,7 @@ describe('proxy handlers', () => {
     expect(generateContentStream).toHaveBeenCalledWith({
       model: 'gemini-2.5-flash',
       contents: [
+        { role: 'system', parts: [{ text: 'ignored' }] },
         { role: 'user', parts: [{ text: 'Hello' }] },
         { role: 'model', parts: [{ text: 'Hi there' }] },
       ],

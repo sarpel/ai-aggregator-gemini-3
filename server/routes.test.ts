@@ -12,7 +12,7 @@ const dbMocks = vi.hoisted(() => ({
 
 vi.mock('./db.js', () => dbMocks);
 
-import router from './routes';
+import router from './routes.js';
 
 type HttpMethod = 'get' | 'post' | 'put' | 'delete';
 type TestRouteLayer = {

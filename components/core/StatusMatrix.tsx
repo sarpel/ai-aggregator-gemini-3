@@ -156,7 +156,7 @@ const ModelCard: React.FC<ModelCardProps> = React.memo(
 				{status === ModelStatus.STREAMING && (
 					<div
 						className="absolute bottom-0 left-0 h-[1px] bg-cyber-neon shadow-[0_0_5px_#00f3ff] transition-all duration-300 z-40"
-						style={{ width: `${response.progress}%` }}
+						style={{ width: `${response?.progress ?? 0}%` }}
 					/>
 				)}
 

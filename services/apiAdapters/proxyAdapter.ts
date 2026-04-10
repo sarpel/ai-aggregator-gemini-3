@@ -15,7 +15,10 @@ export interface ProxyStreamParams {
   abortSignal?: AbortSignal;
 }
 
-type ProxyRequestBody = Pick<ProxyStreamRequest, 'modelId' | 'messages' | 'systemPrompt'>;
+type ProxyRequestBody = Pick<ProxyStreamRequest, 'modelId' | 'messages' | 'systemPrompt'> & {
+  endpoint?: string;
+  modelName?: string;
+};
 
 const PROXY_URLS_BY_API_STYLE: Record<ApiStyle, string> = {
   OPENAI: '/api/proxy/openai',
@@ -153,7 +156,7 @@ export const streamViaProxy = async (params: ProxyStreamParams): Promise<void> =
       processLine(buffer);
     }
 
-    if (params.apiStyle === 'GEMINI' && !hasCompleted) {
+    if (!hasCompleted) {
       hasCompleted = true;
       params.onComplete();
     }

@@ -32,6 +32,8 @@
               'tv-on': 'tvOn 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards',
               'pulse-green': 'pulseGreen 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
               'pulse-red': 'pulseRed 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'pulse-yellow': 'pulseYellow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'fadeIn': 'fadeIn 0.3s ease-out forwards',
             },
             keyframes: {
               glitch: {
@@ -59,6 +61,14 @@
               delayedFadeIn: {
                 '0%, 99%': { opacity: '0' },
                 '100%': { opacity: '1' }
+              },
+              pulseYellow: {
+                '0%, 100%': { opacity: '0.1', backgroundColor: '#eab308' },
+                '50%': { opacity: '0.25', backgroundColor: '#eab308' }
+              },
+              fadeIn: {
+                '0%': { opacity: '0', transform: 'translateY(4px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' }
               }
             }
           }
@@ -91,21 +101,13 @@
       .animate-delayed-fade-in {
         animation: delayedFadeIn 0.1s linear forwards;
       }
+      /* Hide scrollbar but allow scrolling */
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
-    "react-markdown": "https://aistudiocdn.com/react-markdown@^10.1.0"
-  }
-}
-</script>
 </head>
   <body>
     <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>

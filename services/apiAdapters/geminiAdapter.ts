@@ -1,6 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { ModelResponse, ModelStatus, ModelProvider } from "../../types";
+import { ModelResponse, ModelStatus, ModelProviderId } from "../../types";
 import { APP_TIMEOUTS } from "../../constants";
 
 export const streamGemini = async (

@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.bug-perf-review
+.serena
+.sisyphus
+__tests__
+
+
+

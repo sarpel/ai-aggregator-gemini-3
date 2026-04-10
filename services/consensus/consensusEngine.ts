@@ -1,9 +1,9 @@
 
-import { ModelResponse, ModelStatus, ModelProvider } from "../../types";
+import { ModelResponse, ModelStatus, ModelProviderId } from "../../types";
 
 export const prepareSynthesisPrompt = (
   originalPrompt: string, 
-  responses: Record<ModelProvider, ModelResponse>
+  responses: Record<ModelProviderId, ModelResponse>
 ): string => {
   const activeResponses = Object.values(responses)
     .filter(r => r.status === ModelStatus.COMPLETED || r.status === ModelStatus.TIMEOUT)

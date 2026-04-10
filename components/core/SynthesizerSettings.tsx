@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { SynthesizerConfig, SynthesizerMode, AppAction } from '../../types';
-import { Cpu, X, Settings, Save, Server, Network } from 'lucide-react';
+import { SynthesizerConfig, AppAction, ModelConfig } from '../../types';
+import { Cpu, X, Save } from 'lucide-react';
 import CyberButton from '../ui/CyberButton';
 import CyberTooltip from '../ui/CyberTooltip';
 
@@ -9,10 +9,11 @@ interface SynthesizerSettingsProps {
   config: SynthesizerConfig;
   dispatch: React.Dispatch<AppAction>;
   onClose: () => void;
+  modelConfigs: ModelConfig[];
 }
 
-const SynthesizerSettings: React.FC<SynthesizerSettingsProps> = ({ config, dispatch, onClose }) => {
-  const handleChange = (field: keyof SynthesizerConfig, value: any) => {
+const SynthesizerSettings: React.FC<SynthesizerSettingsProps> = ({ config, dispatch, onClose, modelConfigs }) => {
+  const handleChange = (field: keyof SynthesizerConfig, value: string) => {
     dispatch({ type: 'SET_SYNTHESIZER_CONFIG', payload: { [field]: value } });
   };
 
@@ -31,102 +32,32 @@ const SynthesizerSettings: React.FC<SynthesizerSettingsProps> = ({ config, dispa
         </div>
 
         <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
-          {/* Provider Configuration - Primary View now */}
           <div className="animate-fadeIn space-y-6">
-              {/* Provider Selection */}
+              {/* Model Selection */}
               <div className="space-y-2">
-                 <label className="text-gray-400 font-mono text-xs font-bold uppercase tracking-widest">Core Provider</label>
+                 <label className="text-gray-400 font-mono text-xs font-bold uppercase tracking-widest">Synthesis Model</label>
                  <CyberTooltip content="Choose which AI model synthesizes the final answer" position="top">
                    <select 
-                      value={config.provider}
-                      onChange={(e) => handleChange('provider', e.target.value)}
+                      value={config.modelId}
+                      onChange={(e) => handleChange('modelId', e.target.value)}
                       className="w-full bg-black border border-gray-700 text-white font-mono p-2 focus:border-cyber-pink focus:outline-none"
                    >
-                      <option value="GEMINI">Gemini (Uses App Key)</option>
-                      <option value="CUSTOM">Custom / Local / 3rd Party</option>
+                      {modelConfigs.map((model) => (
+                        <option key={model.id} value={model.id}>
+                          {model.name}
+                        </option>
+                      ))}
                    </select>
                  </CyberTooltip>
               </div>
-
-              {config.provider === 'CUSTOM' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-cyber-gray/10 rounded border border-gray-800">
-                  
-                  {/* API Style Selector */}
-                  <div className="md:col-span-2 space-y-2">
-                     <label className="text-xs text-gray-500 flex items-center gap-2">
-                       <Network size={12} /> API Style / Protocol
-                     </label>
-                     <div className="flex gap-4">
-                        <CyberTooltip content="Standard OpenAI Chat Completions format" position="right">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input 
-                                    type="radio" 
-                                    name="apiStyle"
-                                    checked={config.customApiStyle === 'OPENAI' || !config.customApiStyle}
-                                    onChange={() => handleChange('customApiStyle', 'OPENAI')}
-                                    className="accent-cyber-pink"
-                                />
-                                <span className="text-sm font-mono">OpenAI Compatible</span>
-                            </label>
-                        </CyberTooltip>
-                        <CyberTooltip content="Anthropic Messages API format" position="right">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input 
-                                    type="radio" 
-                                    name="apiStyle"
-                                    checked={config.customApiStyle === 'ANTHROPIC'}
-                                    onChange={() => handleChange('customApiStyle', 'ANTHROPIC')}
-                                    className="accent-cyber-pink"
-                                />
-                                <span className="text-sm font-mono">Anthropic</span>
-                            </label>
-                        </CyberTooltip>
-                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs text-gray-500">Endpoint URL</label>
-                    <div className="flex items-center bg-black border border-gray-700">
-                        <Server size={14} className="mx-2 text-gray-500" />
-                        <input 
-                            type="text" 
-                            value={config.customEndpoint || ''}
-                            onChange={(e) => handleChange('customEndpoint', e.target.value)}
-                            placeholder={config.customApiStyle === 'ANTHROPIC' ? "https://api.anthropic.com/v1/messages" : "http://localhost:11434/v1/chat/completions"}
-                            className="w-full bg-transparent text-white font-mono text-xs p-2 outline-none"
-                        />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs text-gray-500">Model Name</label>
-                    <input 
-                        type="text" 
-                        value={config.customModelName || ''}
-                        onChange={(e) => handleChange('customModelName', e.target.value)}
-                        placeholder={config.customApiStyle === 'ANTHROPIC' ? "claude-3-sonnet-20240229" : "llama3"}
-                        className="w-full bg-black border border-gray-700 text-white font-mono text-xs p-2 outline-none focus:border-cyber-pink"
-                    />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="text-xs text-gray-500">API Key (Optional)</label>
-                    <input 
-                        type="password" 
-                        value={config.customApiKey || ''}
-                        onChange={(e) => handleChange('customApiKey', e.target.value)}
-                        placeholder="sk-..."
-                        className="w-full bg-black border border-gray-700 text-white font-mono text-xs p-2 outline-none focus:border-cyber-pink"
-                    />
-                  </div>
-                </div>
-              )}
 
               {/* System Prompt Configuration */}
               <div className="space-y-2">
                 <label className="text-gray-400 font-mono text-xs font-bold uppercase tracking-widest">Master Directive (System Prompt)</label>
                 <CyberTooltip content="Define the persona and rules for the Consensus Engine" position="top">
                     <textarea 
-                        value={config.systemInstruction}
-                        onChange={(e) => handleChange('systemInstruction', e.target.value)}
+                        value={config.systemPrompt}
+                        onChange={(e) => handleChange('systemPrompt', e.target.value)}
                         className="w-full h-32 bg-black border border-gray-700 text-cyber-pink font-mono text-sm p-3 focus:border-cyber-pink focus:outline-none resize-none"
                         placeholder="You are the arbiter of truth..."
                     />

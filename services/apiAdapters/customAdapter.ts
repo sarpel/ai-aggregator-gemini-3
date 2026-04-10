@@ -1,6 +1,11 @@
 
 import { APP_TIMEOUTS } from "../../constants";
 
+// Anthropic's API does not support direct browser requests due to CORS policy.
+// All browser-originated requests to api.anthropic.com are blocked.
+const ANTHROPIC_DIRECT_BROWSER_BLOCKED = (endpoint: string) =>
+  endpoint.includes('api.anthropic.com');
+
 export const streamCustomLLM = async (
   endpoint: string,
   apiKey: string,
@@ -18,6 +23,19 @@ export const streamCustomLLM = async (
   const startTime = Date.now();
 
   try {
+    // --- ANTHROPIC CORS GUARD ---
+    // Anthropic API blocks direct browser requests (no Access-Control-Allow-Origin header).
+    // Show a clear, actionable error instead of a confusing network failure.
+    if (apiStyle === 'ANTHROPIC' && ANTHROPIC_DIRECT_BROWSER_BLOCKED(endpoint)) {
+      onUpdate(
+        'Anthropic API does not support direct browser requests (CORS policy). ' +
+        'Route requests through a backend proxy or choose a different synthesis provider.',
+        statusEnums.error,
+        'CORS: Direct browser requests to api.anthropic.com are blocked. Use a server-side proxy.',
+        { latency: 0, tokenCount: 0 }
+      );
+      return;
+    }
     onUpdate('', statusEnums.synthesizing, undefined, { latency: 0, tokenCount: 0 });
 
     let headers: Record<string, string> = {

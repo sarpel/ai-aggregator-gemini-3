@@ -1,0 +1,74 @@
+{
+  "models": [
+    {
+      "id": "GEMINI",
+      "name": "Gemini 2.5 Flash",
+      "endpoint": "",
+      "modelName": "gemini-2.5-flash",
+      "apiStyle": "GEMINI",
+      "avatarColor": "#00f3ff",
+      "description": "Google Multimodal Fast",
+      "isCustom": false
+    },
+    {
+      "id": "OPENAI",
+      "name": "GPT-4o",
+      "endpoint": "https://api.openai.com/v1/chat/completions",
+      "modelName": "gpt-4o",
+      "apiStyle": "OPENAI",
+      "avatarColor": "#10a37f",
+      "description": "OpenAI Omni",
+      "isCustom": false
+    },
+    {
+      "id": "ANTHROPIC",
+      "name": "Claude 3.5 Sonnet",
+      "endpoint": "https://api.anthropic.com/v1/messages",
+      "modelName": "claude-3-5-sonnet-20241022",
+      "apiStyle": "ANTHROPIC",
+      "avatarColor": "#d97757",
+      "description": "Anthropic New Sonnet",
+      "isCustom": false
+    },
+    {
+      "id": "GROK",
+      "name": "Grok 2",
+      "endpoint": "https://api.x.ai/v1/chat/completions",
+      "modelName": "grok-2-latest",
+      "apiStyle": "OPENAI",
+      "avatarColor": "#fff",
+      "description": "xAI Grok 2",
+      "isCustom": false
+    },
+    {
+      "id": "DEEPSEEK",
+      "name": "DeepSeek V3",
+      "endpoint": "https://api.deepseek.com/chat/completions",
+      "modelName": "deepseek-chat",
+      "apiStyle": "OPENAI",
+      "avatarColor": "#4e61e6",
+      "description": "DeepSeek Chat V3",
+      "isCustom": false
+    }
+  ],
+  "keys": {
+    "0ef96847-44e0-42bd-956f-fe94f6c3c914": {
+      "ciphertext": "2a281301ae78f25d836b5bca73aaa884e4",
+      "iv": "eb0cb9891205b375056fbcaf",
+      "tag": "857a6011f14d880ed1c1bd52e7e95792",
+      "salt": "3b7bec4643649616be87751b0924cd84cc4793237632e6f52ce8ebaf8aea70a1"
+    },
+    "GEMINI": {
+      "ciphertext": "f48da0443e6739d52fa2107b29d4f4",
+      "iv": "67fd5ecd70eb09f00a8ac4cb",
+      "tag": "a345a3f6aad4efa5b07b2bdff13ed809",
+      "salt": "578d1510d0f06186678500a94105ebfb110fe745d9669bacdd0b5ebc9a8712e4"
+    },
+    "d201e6c9-3e3d-46a6-b8ce-2c5b5242ad74": {
+      "ciphertext": "d9fecb7fdd5202947f9d18",
+      "iv": "01e3db2e92837c41fafabca7",
+      "tag": "aa0cbb01adea50070ac855d065bd714e",
+      "salt": "dbad9c6569ef8ca0f9eb5c83fa084091526f0e9c2ff60f2386a551d1ddf13066"
+    }
+  }
+}

@@ -7,17 +7,17 @@
       "modelName": "gemini-3.1-pro-preview",
       "apiStyle": "GEMINI",
       "avatarColor": "#00f3ff",
-      "description": "Google Multimodal Fast",
+      "description": "Google Gemini 3.1 Pro Preview",
       "isCustom": false
     },
     {
       "id": "OPENAI",
-      "name": "GPT-4o",
+      "name": "GPT-5.4",
       "endpoint": "https://api.openai.com/v1/chat/completions",
-      "modelName": "gpt-4o",
+      "modelName": "gpt-5.4",
       "apiStyle": "OPENAI",
       "avatarColor": "#10a37f",
-      "description": "OpenAI Omni",
+      "description": "OpenAI GPT-5.4",
       "isCustom": false
     },
     {
@@ -27,54 +27,29 @@
       "modelName": "claude-sonnet-4.6",
       "apiStyle": "ANTHROPIC",
       "avatarColor": "#d97757",
-      "description": "Anthropic New Sonnet",
+      "description": "Anthropic Sonnet 4.6",
       "isCustom": false
     },
     {
-      "id": "GROK",
+      "id": "ZAI",
       "name": "glm-5.1",
       "endpoint": "https://api.z.ai/api/coding/paas/v4",
       "modelName": "glm-5.1",
       "apiStyle": "OPENAI",
       "avatarColor": "#fff",
-      "description": "xAI Grok 2",
-      "isCustom": false
+      "description": "Z.AI GLM 5.1",
+      "isCustom": true
     },
     {
-      "id": "DEEPSEEK",
-      "name": "kimi-for-coding",
+      "id": "KIMI",
+      "name": "Kimi K2.5",
       "endpoint": "https://api.kimi.com/coding/v1",
       "modelName": "kimi-for-coding",
       "apiStyle": "OPENAI",
       "avatarColor": "#4e61e6",
-      "description": "DeepSeek Chat V3",
-      "isCustom": false
+      "description": "Kimi K2.5",
+      "isCustom": true
     }
   ],
-  "keys": {
-    "GEMINI": {
-      "ciphertext": "e7e30fe4b57301f714a1c7a4514d5a8a03cda118aaf47eec870bb327c49b4cde344971b637a37f",
-      "iv": "b2caea89b20afacac7539f12",
-      "tag": "d43d3e415ceaf74cbe75a05d35b0ade7",
-      "salt": "28398a92ca272e492210ac4df7909c64c2dc34d414a52cb125638c6c9681f60f"
-    },
-    "ANTHROPIC": {
-      "ciphertext": "792d1f94aa01263445e6f968b9c320cbdcb8a8c8e4b3ff7219dc0fab6b76f693b7c8b7a8f037c5ff27c088897fd4589b8880d80deb5765bc6898ff4bf62c2b16356b1201deee3cd1a64562a05824d31512c88f2287f5b00363ac6dc5afa56a5dbaad51a91052fcae53a97b01",
-      "iv": "3e6ce9c77dc95563682bc47f",
-      "tag": "e8c0456613fa15a4a09f067659cd435f",
-      "salt": "0f8baccfc2ab272fa6f6f278cabccd53bbadea9ce69a48955ada4475fdc2fcbb"
-    },
-    "GROK": {
-      "ciphertext": "d54199faf05fd732d35c8db122a79757f85fddf886f345ff6615726cac4cc251faa7000e7cf65ba1401256f657a944a397",
-      "iv": "05519938118e1d34ec163ae0",
-      "tag": "81fa26ad0f38dd0878bd5a1c9ada8049",
-      "salt": "954ba6132acc7fa1054f9ea2b97fa5f4bab410c36a218e430f52c68d2fb61bf3"
-    },
-    "DEEPSEEK": {
-      "ciphertext": "e69c8556caca4dd4e77af988a26d23ee0c15cb61753127ef1c844f9cd77687feeee6465d8d0f323b42b07c23d5e2816aac92e60f9ecd7819047bb63aa7a8cad7467bf3c6193dc2ad",
-      "iv": "d083cb43e9bded7b6d3bb04f",
-      "tag": "c28ec554ea2a7939edadb7bbf53e7dec",
-      "salt": "733e3bacc84490c575ff881cbdef8c3bd362fb80ee34f69a6541177366d75dec"
-    }
-  }
+  "keys": {}
 }

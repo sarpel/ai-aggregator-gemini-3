@@ -24,7 +24,7 @@ export const ModelDetailsModal: React.FC<ModelDetailsModalProps> = ({
 	model,
 	response,
 	onClose,
-}): JSX.Element => {
+}): React.ReactElement => {
 	const isError =
 		response.status === ModelStatus.ERROR ||
 		response.status === ModelStatus.TIMEOUT;

@@ -5,20 +5,13 @@ export interface ProxyStreamParams {
   apiStyle: ApiStyle;
   messages: ChatMessage[];
   systemPrompt?: string;
-  /** Optional override: custom endpoint URL (for synthesis CUSTOM provider) */
-  endpoint?: string;
-  /** Optional override: custom model name (for synthesis CUSTOM provider) */
-  modelName?: string;
   onChunk: (text: string) => void;
   onComplete: () => void;
   onError: (error: string) => void;
   abortSignal?: AbortSignal;
 }
 
-type ProxyRequestBody = Pick<ProxyStreamRequest, 'modelId' | 'messages' | 'systemPrompt'> & {
-  endpoint?: string;
-  modelName?: string;
-};
+type ProxyRequestBody = Pick<ProxyStreamRequest, 'modelId' | 'messages' | 'systemPrompt'>;
 
 const PROXY_URLS_BY_API_STYLE: Record<ApiStyle, string> = {
   OPENAI: '/api/proxy/openai',
@@ -70,8 +63,6 @@ export const streamViaProxy = async (params: ProxyStreamParams): Promise<void> =
     modelId: params.modelId,
     messages: params.messages,
     ...(params.systemPrompt ? { systemPrompt: params.systemPrompt } : {}),
-    ...(params.endpoint ? { endpoint: params.endpoint } : {}),
-    ...(params.modelName ? { modelName: params.modelName } : {}),
   };
 
   let hasCompleted = false;

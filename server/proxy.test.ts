@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('./db.js', () => ({
   getApiKey: vi.fn(),
+  getModelConfigs: vi.fn(),
 }));
 
 vi.mock('@google/genai', () => ({
@@ -9,13 +10,11 @@ vi.mock('@google/genai', () => ({
 }));
 
 import { GoogleGenAI } from '@google/genai';
-import { getApiKey } from './db.js';
+import { getApiKey, getModelConfigs } from './db.js';
 import { handleAnthropicProxy, handleGeminiProxy, handleOpenAIProxy } from './proxy.js';
 
 type ProxyBody = {
   modelId: string;
-  endpoint?: string;
-  modelName: string;
   messages: { role: string; content: string }[];
 };
 
@@ -36,15 +35,25 @@ type MockRes = {
 };
 
 const getApiKeyMock = vi.mocked(getApiKey);
+const getModelConfigsMock = vi.mocked(getModelConfigs);
 const GoogleGenAIMock = vi.mocked(GoogleGenAI);
 const fetchMock = vi.fn();
+
+const DEFAULT_MODEL_CONFIG = {
+  id: 'model-1',
+  endpoint: 'https://example.com/stream',
+  modelName: 'test-model',
+  name: 'Test Model',
+  apiStyle: 'OPENAI' as const,
+  avatarColor: '#fff',
+  description: 'Test',
+  isCustom: false,
+};
 
 function createMockReq(body: Partial<ProxyBody> = {}): MockReq {
   return {
     body: {
       modelId: 'model-1',
-      endpoint: 'https://example.com/stream',
-      modelName: 'test-model',
       messages: [{ role: 'user', content: 'Hello' }],
       ...body,
     },
@@ -91,6 +100,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   fetchMock.mockReset();
   global.fetch = fetchMock as typeof fetch;
+  getModelConfigsMock.mockReturnValue([DEFAULT_MODEL_CONFIG]);
 });
 
 describe('proxy handlers', () => {
@@ -132,14 +142,18 @@ describe('proxy handlers', () => {
 
   it('OpenAI proxy builds correct upstream headers/body and pipes SSE verbatim', async () => {
     getApiKeyMock.mockReturnValue('openai-key');
+    getModelConfigsMock.mockReturnValue([{
+      ...DEFAULT_MODEL_CONFIG,
+      id: 'model-1',
+      endpoint: 'https://api.openai.com/v1/chat/completions',
+      modelName: 'gpt-test',
+    }]);
     fetchMock.mockResolvedValue({
       ok: true,
       body: createMockReadableStream(['data: {"x":1}\n\n', 'data: [DONE]\n\n']),
     });
 
     const req = createMockReq({
-      endpoint: 'https://api.openai.com/v1/chat/completions',
-      modelName: 'gpt-test',
       messages: [{ role: 'user', content: 'Ping' }],
     });
     const res = createMockRes();
@@ -170,14 +184,19 @@ describe('proxy handlers', () => {
 
   it('Anthropic proxy builds correct upstream headers/body and extracts system message', async () => {
     getApiKeyMock.mockReturnValue('anthropic-key');
+    getModelConfigsMock.mockReturnValue([{
+      ...DEFAULT_MODEL_CONFIG,
+      id: 'model-1',
+      endpoint: 'https://api.anthropic.com/v1/messages',
+      modelName: 'claude-test',
+      apiStyle: 'ANTHROPIC' as const,
+    }]);
     fetchMock.mockResolvedValue({
       ok: true,
       body: createMockReadableStream(['data: {"type":"content_block_delta"}\n\n']),
     });
 
     const req = createMockReq({
-      endpoint: 'https://api.anthropic.com/v1/messages',
-      modelName: 'claude-test',
       messages: [
         { role: 'system', content: 'Be concise' },
         { role: 'user', content: 'Hello' },
@@ -215,6 +234,12 @@ describe('proxy handlers', () => {
 
   it('Gemini proxy converts messages to Gemini contents format correctly', async () => {
     getApiKeyMock.mockReturnValue('gemini-key');
+    getModelConfigsMock.mockReturnValue([{
+      ...DEFAULT_MODEL_CONFIG,
+      id: 'model-1',
+      modelName: 'gemini-2.5-flash',
+      apiStyle: 'GEMINI' as const,
+    }]);
     const generateContentStream = vi.fn().mockResolvedValue(createAsyncIterable([{ text: 'hello' }]));
     GoogleGenAIMock.mockImplementation(
       function mockGoogleGenAI() {
@@ -225,7 +250,6 @@ describe('proxy handlers', () => {
     );
 
     const req = createMockReq({
-      modelName: 'gemini-2.5-flash',
       messages: [
         { role: 'system', content: 'ignored' },
         { role: 'user', content: 'Hello' },
@@ -249,6 +273,12 @@ describe('proxy handlers', () => {
 
   it('Gemini proxy emits SSE text chunks and DONE marker', async () => {
     getApiKeyMock.mockReturnValue('gemini-key');
+    getModelConfigsMock.mockReturnValue([{
+      ...DEFAULT_MODEL_CONFIG,
+      id: 'model-1',
+      modelName: 'gemini-2.5-flash',
+      apiStyle: 'GEMINI' as const,
+    }]);
     const generateContentStream = vi.fn().mockResolvedValue(
       createAsyncIterable([{ text: 'A' }, { text: 'B' }, { text: '' }]),
     );
@@ -260,7 +290,7 @@ describe('proxy handlers', () => {
       },
     );
 
-    const req = createMockReq({ modelName: 'gemini-2.5-flash' });
+    const req = createMockReq();
     const res = createMockRes();
 
     await handleGeminiProxy(req as never, res as never);

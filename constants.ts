@@ -1,5 +1,5 @@
 import { config } from './config';
-import { ModelStatus, type ModelConfig } from './types';
+import { ModelStatus, type ModelConfig, type ModelResponse } from './types';
 
 export const APP_TIMEOUTS = config.appSettings;
 
@@ -18,7 +18,7 @@ export const getAvailableModels = (modelConfigs: ModelConfig[]): ModelConfig[] =
   normalizeModelConfigs(modelConfigs.filter((m) => m.enabled !== false));
 
 
-export const INITIAL_RESPONSE_STATE = (modelId: string) => ({
+export const INITIAL_RESPONSE_STATE = (modelId: string): ModelResponse => ({
   provider: modelId,
   status: ModelStatus.IDLE,
   text: '',

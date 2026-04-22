@@ -14,5 +14,6 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     include: ['**/*.test.ts', '**/*.test.tsx'],
+    exclude: ['server/**', '**/node_modules/**'],
   },
 });

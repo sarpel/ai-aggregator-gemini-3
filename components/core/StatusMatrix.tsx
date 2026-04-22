@@ -171,6 +171,10 @@ const ModelCard: React.FC<ModelCardProps> = React.memo(
 	},
 	(prev, next) => {
 		return (
+			prev.model.id === next.model.id &&
+			prev.model.name === next.model.name &&
+			prev.model.avatarColor === next.model.avatarColor &&
+			prev.model.description === next.model.description &&
 			prev.isActive === next.isActive &&
 			prev.response?.status === next.response?.status &&
 			prev.response?.text === next.response?.text &&

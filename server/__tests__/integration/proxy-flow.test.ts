@@ -22,13 +22,14 @@ vi.mock('@google/genai', () => {
 });
 
 /* ------------------------------------------------------------------ */
-/* Mock db.js so we control getApiKey directly                        */
+/* Mock db.js so we control getApiKey and getModelConfigs directly    */
 /* ------------------------------------------------------------------ */
 const apiKeys: Record<string, string> = {};
+const mockModelConfigs: ReturnType<typeof import('../../db.js').getModelConfigs> = [];
 
 vi.mock('../../db.js', () => ({
   initDb: vi.fn(),
-  getModelConfigs: vi.fn().mockReturnValue([]),
+  getModelConfigs: vi.fn(() => mockModelConfigs),
   saveModelConfig: vi.fn(),
   deleteModelConfig: vi.fn(),
   getApiKey: vi.fn((modelId: string) => apiKeys[modelId] ?? null),
@@ -146,6 +147,40 @@ describe('proxy-flow integration', () => {
     apiKeys['ANTHROPIC'] = 'test-anthropic-key';
     apiKeys['GEMINI'] = 'test-gemini-key';
 
+    // Populate model configs with mock LLM server URL (set after server starts)
+    mockModelConfigs.push(
+      {
+        id: 'OPENAI',
+        name: 'OpenAI GPT',
+        endpoint: `${mockLLM.url}/v1/chat/completions`,
+        modelName: 'gpt-test',
+        apiStyle: 'OPENAI',
+        avatarColor: '#74b9ff',
+        description: 'Test OpenAI model',
+        isCustom: false,
+      },
+      {
+        id: 'ANTHROPIC',
+        name: 'Anthropic Claude',
+        endpoint: `${mockLLM.url}/v1/messages`,
+        modelName: 'claude-test',
+        apiStyle: 'ANTHROPIC',
+        avatarColor: '#a29bfe',
+        description: 'Test Anthropic model',
+        isCustom: false,
+      },
+      {
+        id: 'GEMINI',
+        name: 'Gemini',
+        endpoint: '',
+        modelName: 'gemini-2.5-flash',
+        apiStyle: 'GEMINI',
+        avatarColor: '#55efc4',
+        description: 'Test Gemini model',
+        isCustom: false,
+      },
+    );
+
     // Import proxy handlers (will use our mocked db.js and @google/genai)
     const { handleOpenAIProxy, handleAnthropicProxy, handleGeminiProxy } =
       await import('../../proxy.js');
@@ -179,8 +214,6 @@ describe('proxy-flow integration', () => {
     it('streams SSE response from mock LLM server', async () => {
       const result = await fetchSSEViaHttp(`${baseUrl}/api/proxy/openai`, {
         modelId: 'OPENAI',
-        endpoint: `${mockLLM.url}/v1/chat/completions`,
-        modelName: 'gpt-test',
         messages: [{ role: 'user', content: 'Hello' }],
       });
 
@@ -215,8 +248,6 @@ describe('proxy-flow integration', () => {
 
       const result = await fetchSSEViaHttp(`${baseUrl}/api/proxy/openai`, {
         modelId: 'OPENAI',
-        endpoint: `${mockLLM.url}/v1/chat/completions`,
-        modelName: 'gpt-test',
         messages: [{ role: 'user', content: 'Hello' }],
       });
 
@@ -231,8 +262,6 @@ describe('proxy-flow integration', () => {
     it('streams SSE response from mock LLM server', async () => {
       const result = await fetchSSEViaHttp(`${baseUrl}/api/proxy/anthropic`, {
         modelId: 'ANTHROPIC',
-        endpoint: `${mockLLM.url}/v1/messages`,
-        modelName: 'claude-test',
         messages: [
           { role: 'system', content: 'Be helpful' },
           { role: 'user', content: 'Hello' },
@@ -268,8 +297,6 @@ describe('proxy-flow integration', () => {
 
       const result = await fetchSSEViaHttp(`${baseUrl}/api/proxy/anthropic`, {
         modelId: 'ANTHROPIC',
-        endpoint: `${mockLLM.url}/v1/messages`,
-        modelName: 'claude-test',
         messages: [{ role: 'user', content: 'Hello' }],
       });
 
@@ -293,7 +320,6 @@ describe('proxy-flow integration', () => {
 
         const result = await fetchSSEViaHttp(`${baseUrl}/api/proxy/gemini`, {
           modelId: 'GEMINI',
-          modelName: 'gemini-2.5-flash',
           messages: [{ role: 'user', content: 'Hello' }],
         });
 

@@ -1,14 +1,12 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, type GenerateContentResponse } from '@google/genai';
 import type { Request, Response } from 'express';
 
-import { getApiKey } from './db.js';
+import { getApiKey, getModelConfigs } from './db.js';
 
 type FlushableResponse = Response & { flush?: () => void };
 
 interface ProxyRequest {
   modelId: string;
-  endpoint?: string;
-  modelName: string;
   messages: { role: string; content: string }[];
   systemPrompt?: string;
 }
@@ -49,16 +47,22 @@ export async function handleOpenAIProxy(
   req: Request<object, object, ProxyRequest>,
   res: FlushableResponse,
 ): Promise<void> {
-  const apiKey = getApiKey(req.body.modelId);
+  let apiKey: string | null;
+  try {
+    apiKey = getApiKey(req.body.modelId);
+  } catch {
+    res.status(500).json({ error: 'Failed to retrieve API key' });
+    return;
+  }
 
   if (!apiKey) {
     res.status(400).json({ error: 'API key not configured for model' });
     return;
   }
 
-  const endpoint = req.body.endpoint;
-  if (!endpoint) {
-    res.status(400).json({ error: 'Field "endpoint" is required' });
+  const modelConfig = getModelConfigs().find((m) => m.id === req.body.modelId);
+  if (!modelConfig) {
+    res.status(400).json({ error: `Unknown model: ${req.body.modelId}` });
     return;
   }
 
@@ -73,13 +77,13 @@ export async function handleOpenAIProxy(
     : req.body.messages;
 
   const upstreamBody = {
-    model: req.body.modelName,
+    model: modelConfig.modelName,
     messages: messagesWithSystem,
     stream: true,
   };
 
   try {
-    const response = await fetch(endpoint, {
+    const response = await fetch(modelConfig.endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -114,16 +118,22 @@ export async function handleAnthropicProxy(
   req: Request<object, object, ProxyRequest>,
   res: FlushableResponse,
 ): Promise<void> {
-  const apiKey = getApiKey(req.body.modelId);
+  let apiKey: string | null;
+  try {
+    apiKey = getApiKey(req.body.modelId);
+  } catch {
+    res.status(500).json({ error: 'Failed to retrieve API key' });
+    return;
+  }
 
   if (!apiKey) {
     res.status(400).json({ error: 'API key not configured for model' });
     return;
   }
 
-  const endpoint = req.body.endpoint;
-  if (!endpoint) {
-    res.status(400).json({ error: 'Field "endpoint" is required' });
+  const modelConfig = getModelConfigs().find((m) => m.id === req.body.modelId);
+  if (!modelConfig) {
+    res.status(400).json({ error: `Unknown model: ${req.body.modelId}` });
     return;
   }
 
@@ -136,7 +146,7 @@ export async function handleAnthropicProxy(
   const systemContent = req.body.systemPrompt ?? systemMsg?.content;
   const otherMessages = req.body.messages.filter((message) => message.role !== 'system');
   const upstreamBody = {
-    model: req.body.modelName,
+    model: modelConfig.modelName,
     messages: otherMessages,
     max_tokens: 8192,
     stream: true,
@@ -144,7 +154,7 @@ export async function handleAnthropicProxy(
   };
 
   try {
-    const response = await fetch(endpoint, {
+    const response = await fetch(modelConfig.endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -180,10 +190,22 @@ export async function handleGeminiProxy(
   req: Request<object, object, ProxyRequest>,
   res: FlushableResponse,
 ): Promise<void> {
-  const apiKey = getApiKey(req.body.modelId);
+  let apiKey: string | null;
+  try {
+    apiKey = getApiKey(req.body.modelId);
+  } catch {
+    res.status(500).json({ error: 'Failed to retrieve API key' });
+    return;
+  }
 
   if (!apiKey) {
     res.status(400).json({ error: 'API key not configured for model' });
+    return;
+  }
+
+  const modelConfig = getModelConfigs().find((m) => m.id === req.body.modelId);
+  if (!modelConfig) {
+    res.status(400).json({ error: `Unknown model: ${req.body.modelId}` });
     return;
   }
 
@@ -200,7 +222,7 @@ export async function handleGeminiProxy(
   setSseHeaders(res);
 
   let isClosed = req.socket.destroyed;
-  let responseIterator: AsyncIterator<{ text?: string }> | null = null;
+  let responseIterator: AsyncGenerator<GenerateContentResponse> | null = null;
 
   req.on('close', () => {
     isClosed = true;
@@ -211,11 +233,11 @@ export async function handleGeminiProxy(
 
   try {
     const responseStream = await ai.models.generateContentStream({
-      model: req.body.modelName,
+      model: modelConfig.modelName,
       contents,
       ...(config ? { config } : {}),
     });
-    responseIterator = responseStream[Symbol.asyncIterator]();
+    responseIterator = responseStream;
 
     for await (const chunk of responseIterator) {
       if (isClosed) {

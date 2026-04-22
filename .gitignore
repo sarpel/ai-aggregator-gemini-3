@@ -32,5 +32,6 @@ coverage/
 *.lcov
 .cache/
 
-
+# Server runtime data (contains encrypted secrets)
+server/db.json
 

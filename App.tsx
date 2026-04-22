@@ -248,8 +248,6 @@ export default function App() {
       await streamViaProxy({
         modelId: modelConfig.id,
         apiStyle: modelConfig.apiStyle,
-        endpoint: modelConfig.endpoint || undefined,
-        modelName: modelConfig.modelName || undefined,
         messages: [{ role: 'user', content: synthesisPrompt, timestamp: Date.now() }],
         systemPrompt,
         onChunk: (chunk) => {
@@ -342,8 +340,6 @@ export default function App() {
         await streamViaProxy({
           modelId,
           apiStyle: config.apiStyle,
-          endpoint: config.endpoint,
-          modelName: config.modelName,
           messages,
           onChunk: (chunk) => {
             accumulatedText += chunk;

@@ -40,9 +40,13 @@ describe('config-flow integration', () => {
     });
 
     const addr = server.address();
-    if (addr && typeof addr === 'object') {
-      baseUrl = `http://127.0.0.1:${addr.port}`;
+    if (addr === null) {
+      throw new Error('Server not listening — server.address() returned null');
     }
+    if (typeof addr === 'string') {
+      throw new Error(`Unix socket address not supported in tests: ${addr}`);
+    }
+    baseUrl = `http://127.0.0.1:${addr.port}`;
   });
 
   afterAll(async () => {

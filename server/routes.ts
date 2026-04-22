@@ -227,8 +227,7 @@ router.delete('/models/:id', async (req: Request, res: Response) => {
     await deleteModelConfig(routeId);
   } catch (err) {
     console.error(`[DELETE /models/${routeId}] Error:`, err);
-    const errMessage = err instanceof Error ? err.message : String(err);
-    return res.status(500).json({ error: 'Failed to delete model', details: errMessage });
+    return res.status(500).json({ error: 'Failed to delete model' });
   }
 
   return res.status(204).send();

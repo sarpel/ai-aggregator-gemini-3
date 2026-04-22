@@ -65,8 +65,8 @@ describe('db', () => {
       'GEMINI',
       'OPENAI',
       'ANTHROPIC',
-      'GROK',
-      'DEEPSEEK',
+      'ZAI',
+      'KIMI',
     ]);
     expect(rawDb.models).toHaveLength(5);
     expect(rawDb.keys).toEqual({});
@@ -131,12 +131,12 @@ describe('db', () => {
     const dbModule = await loadDbModule(dbPath);
 
     await dbModule.initDb();
-    await dbModule.deleteModelConfig('GROK');
+    await dbModule.deleteModelConfig('ZAI');
 
     const storedModels = dbModule.getModelConfigs();
 
     expect(storedModels).toHaveLength(4);
-    expect(storedModels.some((model) => model.id === 'GROK')).toBe(false);
+    expect(storedModels.some((model) => model.id === 'ZAI')).toBe(false);
   });
 
   it('setApiKey and getApiKey round-trip values', async () => {

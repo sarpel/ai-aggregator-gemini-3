@@ -211,13 +211,20 @@ export async function handleGeminiProxy(
 
   const ai = new GoogleGenAI({ apiKey });
   const systemPrompt = req.body.systemPrompt;
+  const systemMessageText = req.body.messages
+    .filter((m) => m.role === 'system')
+    .map((m) => m.content)
+    .join('\n');
+
   const contents = req.body.messages
+    .filter((message) => message.role !== 'system')
     .map((message) => ({
-      role: message.role === 'user' ? 'user' : message.role === 'system' ? 'system' : 'model',
+      role: message.role === 'user' ? 'user' : 'model',
       parts: [{ text: message.content }],
     }));
 
-  const config = systemPrompt ? { systemInstruction: systemPrompt } : undefined;
+  const systemInstruction = systemPrompt || systemMessageText || undefined;
+  const config = systemInstruction ? { systemInstruction } : undefined;
 
   setSseHeaders(res);
 

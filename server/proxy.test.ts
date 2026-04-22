@@ -264,10 +264,10 @@ describe('proxy handlers', () => {
     expect(generateContentStream).toHaveBeenCalledWith({
       model: 'gemini-2.5-flash',
       contents: [
-        { role: 'system', parts: [{ text: 'ignored' }] },
         { role: 'user', parts: [{ text: 'Hello' }] },
         { role: 'model', parts: [{ text: 'Hi there' }] },
       ],
+      config: { systemInstruction: 'ignored' },
     });
   });
 

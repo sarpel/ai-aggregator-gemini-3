@@ -68,6 +68,7 @@ export const streamViaProxy = async (params: ProxyStreamParams): Promise<void> =
   let hasCompleted = false;
 
   try {
+    console.log(`[PROXY/${params.modelId}] Sending ${params.apiStyle} stream request...`);
     const response = await fetch(proxyUrl, {
       method: 'POST',
       headers: {
@@ -80,6 +81,7 @@ export const streamViaProxy = async (params: ProxyStreamParams): Promise<void> =
     if (!response.ok) {
       const errorBody = await response.text().catch(() => '');
       const errorMessage = errorBody || `Proxy request failed with status ${response.status}`;
+      console.error(`[PROXY/${params.modelId}] HTTP ${response.status}: ${errorMessage}`);
       params.onError(errorMessage);
       return;
     }
@@ -153,10 +155,12 @@ export const streamViaProxy = async (params: ProxyStreamParams): Promise<void> =
     }
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
+      console.log(`[PROXY/${params.modelId}] Stream aborted by user`);
       return;
     }
 
     const message = error instanceof Error ? error.message : 'Unknown proxy streaming error';
+    console.error(`[PROXY/${params.modelId}] Stream error:`, message);
     params.onError(message);
   }
 };

@@ -262,6 +262,7 @@ export default function App() {
           dispatch({ type: 'ADD_HISTORY', payload: { prompt: state.currentPrompt, consensus: fullText } });
         },
         onError: (error) => {
+          console.error(`[SYNTHESIS] Consensus error: ${error}`);
           dispatch({
             type: 'UPDATE_CONSENSUS',
             payload: { status: ConsensusStatus.ERROR, text: `Synthesis Error: ${error}` },
@@ -371,6 +372,7 @@ export default function App() {
             });
           },
           onError: (error) => {
+            console.error(`[STREAM/${modelId}] Model error: ${error}`);
             dispatch({
               type: 'UPDATE_RESPONSE',
               modelId,

@@ -67,7 +67,10 @@ export async function handleOpenAIProxy(
   }
 
   const controller = new AbortController();
-  req.on('close', () => controller.abort());
+  req.on('close', () => {
+    console.log(`[PROXY/${req.body.modelId}] Client disconnected, aborting upstream request`);
+    controller.abort();
+  });
 
   setSseHeaders(res);
 
@@ -83,6 +86,7 @@ export async function handleOpenAIProxy(
   };
 
   try {
+    console.log(`[PROXY/OPENAI] Streaming ${modelConfig.modelName} → ${modelConfig.endpoint}`);
     const response = await fetch(modelConfig.endpoint, {
       method: 'POST',
       headers: {
@@ -93,20 +97,30 @@ export async function handleOpenAIProxy(
       signal: req.socket.destroyed ? AbortSignal.abort() : controller.signal,
     });
 
+    console.log(`[PROXY/OPENAI] Upstream responded: ${response.status} ${response.statusText}`);
+
     if (!response.ok) {
+      const errorBody = await response.text().catch(() => '');
+      console.error(`[PROXY/OPENAI] Upstream error ${response.status}: ${errorBody}`);
       writeSseError(res, `Upstream error: ${response.status}`);
       return;
     }
 
     if (!response.body) {
+      console.warn(`[PROXY/OPENAI] No response body from upstream`);
       res.end();
       return;
     }
 
     await pipeUpstreamBodyToResponse(response.body, res);
-
+    console.log(`[PROXY/OPENAI] Stream complete for ${req.body.modelId}`);
     res.end();
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.log(`[PROXY/OPENAI] Request aborted for ${req.body.modelId}`);
+    } else {
+      console.error(`[PROXY/OPENAI] Error for ${req.body.modelId}:`, error);
+    }
     if (!res.writableEnded) {
       const message = error instanceof Error ? error.message : 'Unknown proxy error';
       writeSseError(res, message);
@@ -138,7 +152,10 @@ export async function handleAnthropicProxy(
   }
 
   const controller = new AbortController();
-  req.on('close', () => controller.abort());
+  req.on('close', () => {
+    console.log(`[PROXY/${req.body.modelId}] Client disconnected, aborting upstream request`);
+    controller.abort();
+  });
 
   setSseHeaders(res);
 
@@ -154,6 +171,7 @@ export async function handleAnthropicProxy(
   };
 
   try {
+    console.log(`[PROXY/ANTHROPIC] Streaming ${modelConfig.modelName} → ${modelConfig.endpoint}`);
     const response = await fetch(modelConfig.endpoint, {
       method: 'POST',
       headers: {
@@ -165,20 +183,30 @@ export async function handleAnthropicProxy(
       signal: req.socket.destroyed ? AbortSignal.abort() : controller.signal,
     });
 
+    console.log(`[PROXY/ANTHROPIC] Upstream responded: ${response.status} ${response.statusText}`);
+
     if (!response.ok) {
+      const errorBody = await response.text().catch(() => '');
+      console.error(`[PROXY/ANTHROPIC] Upstream error ${response.status}: ${errorBody}`);
       writeSseError(res, `Upstream error: ${response.status}`);
       return;
     }
 
     if (!response.body) {
+      console.warn(`[PROXY/ANTHROPIC] No response body from upstream`);
       res.end();
       return;
     }
 
     await pipeUpstreamBodyToResponse(response.body, res);
-
+    console.log(`[PROXY/ANTHROPIC] Stream complete for ${req.body.modelId}`);
     res.end();
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.log(`[PROXY/ANTHROPIC] Request aborted for ${req.body.modelId}`);
+    } else {
+      console.error(`[PROXY/ANTHROPIC] Error for ${req.body.modelId}:`, error);
+    }
     if (!res.writableEnded) {
       const message = error instanceof Error ? error.message : 'Unknown proxy error';
       writeSseError(res, message);
@@ -232,6 +260,7 @@ export async function handleGeminiProxy(
   let responseIterator: AsyncGenerator<GenerateContentResponse> | null = null;
 
   req.on('close', () => {
+    console.log(`[PROXY/GEMINI] Client disconnected for ${req.body.modelId}`);
     isClosed = true;
     if (responseIterator && typeof responseIterator.return === 'function') {
       void responseIterator.return(undefined);
@@ -239,6 +268,7 @@ export async function handleGeminiProxy(
   });
 
   try {
+    console.log(`[PROXY/GEMINI] Streaming ${modelConfig.modelName}`);
     const responseStream = await ai.models.generateContentStream({
       model: modelConfig.modelName,
       contents,
@@ -256,10 +286,16 @@ export async function handleGeminiProxy(
     }
 
     if (!isClosed) {
+      console.log(`[PROXY/GEMINI] Stream complete for ${req.body.modelId}`);
       res.write('data: [DONE]\n\n');
       res.end();
     }
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.log(`[PROXY/GEMINI] Request aborted for ${req.body.modelId}`);
+    } else {
+      console.error(`[PROXY/GEMINI] Error for ${req.body.modelId}:`, error);
+    }
     if (!res.writableEnded) {
       const message = error instanceof Error ? error.message : 'Unknown proxy error';
       writeSseError(res, message);

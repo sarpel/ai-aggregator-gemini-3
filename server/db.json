@@ -2,7 +2,7 @@
   "models": [
     {
       "id": "GEMINI",
-      "name": "gemini-3.1-pro-preview",
+      "name": "Gemini 3.1 Pro",
       "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:streamGenerateContent",
       "modelName": "gemini-3.1-pro-preview",
       "apiStyle": "GEMINI",
@@ -22,7 +22,7 @@
     },
     {
       "id": "ANTHROPIC",
-      "name": "claude-sonnet-4.6",
+      "name": "Claude Sonnet 4.6",
       "endpoint": "https://api.anthropic.com/v1/messages",
       "modelName": "claude-sonnet-4.6",
       "apiStyle": "ANTHROPIC",
@@ -33,7 +33,7 @@
     {
       "id": "ZAI",
       "name": "glm-5.1",
-      "endpoint": "https://api.z.ai/api/coding/paas/v4",
+      "endpoint": "https://api.z.ai/api/coding/paas/v4/chat/completions",
       "modelName": "glm-5.1",
       "apiStyle": "OPENAI",
       "avatarColor": "#fff",
@@ -43,7 +43,7 @@
     {
       "id": "KIMI",
       "name": "Kimi K2.5",
-      "endpoint": "https://api.kimi.com/coding/v1",
+      "endpoint": "https://api.kimi.com/coding/v1/chat/completions",
       "modelName": "kimi-for-coding",
       "apiStyle": "OPENAI",
       "avatarColor": "#4e61e6",
@@ -51,5 +51,24 @@
       "isCustom": true
     }
   ],
-  "keys": {}
+  "keys": {
+    "GEMINI": {
+      "ciphertext": "7c37f29ab6d005bdbca3d955e9976670e3368ff95c15753663c73f8ce41df6072232601d806c90",
+      "iv": "06b4c2c07f7cfe5bce8b1fb7",
+      "tag": "bb1bf69c6eb4161d761a018bdd485d03",
+      "salt": "dcd5c587b26506cbb66f0fea15e30fe919329e4fa1c321d0b9817a2ac610f178"
+    },
+    "KIMI": {
+      "ciphertext": "a2c5d0f498a3dc5a5a938ccd15b77567a7a70b5b64bb3863d64ef2fb005033e72751cf2a852e1ccd06f26b066bd07f8f6d78314331954997d10531aff75f44c9f249b2e8e47ac105",
+      "iv": "3b39c3e20325a73e4354887c",
+      "tag": "80acd0aaf1e5bd2e7af2d4f1f344946f",
+      "salt": "80c0683ef6d75e756bb730608084619f1703491af459ea8cf397ef9398fa5cfe"
+    },
+    "ZAI": {
+      "ciphertext": "4f6a5971b6dc2128ceefb2f5537f76ff6d3b494e738b02a0783eceb9846e8c62b2fd385f3a93437a9e91c95b46c428e93d",
+      "iv": "34b53dc1600d35d81865fa36",
+      "tag": "baa56f1a4a22dfc181cfe1b22afadc56",
+      "salt": "a42dfb8273c2331fa4a0d2a798165bc03bd8c41dcab1bdedaebaaba49477999c"
+    }
+  }
 }

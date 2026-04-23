@@ -11,13 +11,13 @@ export const config = {
 export const DEFAULT_MODELS: ModelConfig[] = [
   {
     "id": "GEMINI",
-    "name": "gemini-3.1-pro-preview",
+    "name": "gemini-3-pro-preview",
     "provider": "GEMINI",
     "avatarColor": "#00f3ff",
-    "description": "Google Gemini 3.1 Pro Preview",
+    "description": "Google Gemini 3 Pro Preview",
     "apiStyle": "GEMINI",
-    "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:streamGenerateContent",
-    "modelName": "gemini-3.1-pro-preview",
+    "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:streamGenerateContent",
+    "modelName": "gemini-3-pro-preview",
     "isCustom": false,
     "isSimulated": false
   },
@@ -52,7 +52,7 @@ export const DEFAULT_MODELS: ModelConfig[] = [
     "avatarColor": "#fff",
     "description": "Z.AI GLM 5.1",
     "apiStyle": "OPENAI",
-    "endpoint": "https://api.z.ai/api/coding/paas/v4",
+    "endpoint": "https://api.z.ai/api/coding/paas/v4/chat/completions",
     "modelName": "glm-5.1",
     "isCustom": true,
     "isSimulated": false
@@ -64,7 +64,7 @@ export const DEFAULT_MODELS: ModelConfig[] = [
     "avatarColor": "#4e61e6",
     "description": "Kimi K2.5",
     "apiStyle": "OPENAI",
-    "endpoint": "https://api.kimi.com/coding/v1",
+    "endpoint": "https://api.kimi.com/coding/v1/chat/completions",
     "modelName": "kimi-for-coding",
     "isCustom": true,
     "isSimulated": false

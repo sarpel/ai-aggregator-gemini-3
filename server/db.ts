@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
-import { mkdir } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { Low } from 'lowdb';
 import { JSONFile } from 'lowdb/node';
 
@@ -31,8 +31,8 @@ const DEFAULT_MODELS: ModelConfigStored[] = [
   { id: 'GEMINI', name: 'Gemini 3.1 Pro', endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:streamGenerateContent', modelName: 'gemini-3.1-pro-preview', apiStyle: 'GEMINI', avatarColor: '#00f3ff', description: 'Google Gemini 3.1 Pro Preview', isCustom: false },
   { id: 'OPENAI', name: 'GPT-5.4', endpoint: 'https://api.openai.com/v1/chat/completions', modelName: 'gpt-5.4', apiStyle: 'OPENAI', avatarColor: '#10a37f', description: 'OpenAI GPT-5.4', isCustom: false },
   { id: 'ANTHROPIC', name: 'Claude Sonnet 4.6', endpoint: 'https://api.anthropic.com/v1/messages', modelName: 'claude-sonnet-4.6', apiStyle: 'ANTHROPIC', avatarColor: '#d97757', description: 'Anthropic Sonnet 4.6', isCustom: false },
-  { id: 'ZAI', name: 'glm-5.1', endpoint: 'https://api.z.ai/api/coding/paas/v4', modelName: 'glm-5.1', apiStyle: 'OPENAI', avatarColor: '#fff', description: 'Z.AI GLM 5.1', isCustom: true },
-  { id: 'KIMI', name: 'Kimi K2.5', endpoint: 'https://api.kimi.com/coding/v1', modelName: 'kimi-for-coding', apiStyle: 'OPENAI', avatarColor: '#4e61e6', description: 'Kimi K2.5', isCustom: true },
+  { id: 'ZAI', name: 'glm-5.1', endpoint: 'https://api.z.ai/api/coding/paas/v4/chat/completions', modelName: 'glm-5.1', apiStyle: 'OPENAI', avatarColor: '#fff', description: 'Z.AI GLM 5.1', isCustom: true },
+  { id: 'KIMI', name: 'Kimi K2.5', endpoint: 'https://api.kimi.com/coding/v1/chat/completions', modelName: 'kimi-for-coding', apiStyle: 'OPENAI', avatarColor: '#4e61e6', description: 'Kimi K2.5', isCustom: true },
 ];
 
 let db: Low<DbSchema>;
@@ -49,6 +49,47 @@ function getMasterKey(): string {
   }
 
   throw new Error('ENCRYPTION_KEY environment variable is required. Set it before starting the server.');
+}
+
+async function ensureEncryptionKey(): Promise<string> {
+  const existing = process.env.ENCRYPTION_KEY;
+  if (existing) return existing;
+
+  const dbDir = dirname(getDbPath());
+  const envPath = join(dbDir, '.env');
+
+  // Try reading existing .env
+  try {
+    const envContent = await readFile(envPath, 'utf8');
+    const match = envContent.match(/^ENCRYPTION_KEY\s*=\s*['"]?([^'"\n\r]+)['"]?\s*$/m);
+    if (match?.[1]) {
+      process.env.ENCRYPTION_KEY = match[1];
+      return match[1];
+    }
+  } catch {
+    // .env doesn't exist yet, will create below
+  }
+
+  // Generate and persist a new key
+  const newKey = randomBytes(32).toString('hex');
+  const line = `ENCRYPTION_KEY=${newKey}\n`;
+  try {
+    let envContent = '';
+    try {
+      envContent = await readFile(envPath, 'utf8');
+      // Remove any existing empty/placeholder ENCRYPTION_KEY line
+      envContent = envContent.replace(/^ENCRYPTION_KEY\s*=\s*.*$/m, '').trim();
+      if (envContent) envContent += '\n';
+    } catch {
+      // no existing file
+    }
+    await writeFile(envPath, envContent + line, 'utf8');
+  } catch {
+    // Can't persist — that's OK, key works for this session
+  }
+
+  process.env.ENCRYPTION_KEY = newKey;
+  return newKey;
 }
 
 function ensureDb(): Low<DbSchema> {
@@ -106,7 +147,22 @@ export async function initDb(): Promise<void> {
   if (db.data.models.length === 0) {
     db.data.models = DEFAULT_MODELS.map(cloneModelConfig);
     await persistDb(db);
+  } else {
+    // Sync seeded models (default entries) with updated defaults
+    let needsPersist = false;
+    for (const stored of db.data.models) {
+      const updated = DEFAULT_MODELS.find((d) => d.id === stored.id);
+      if (updated) {
+        Object.assign(stored, cloneModelConfig(updated));
+        needsPersist = true;
+      }
+    }
+    if (needsPersist) {
+      await persistDb(db);
+    }
   }
+
+  await ensureEncryptionKey();
 }
 
 export function getModelConfigs(): ModelConfigStored[] {

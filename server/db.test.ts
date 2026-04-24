@@ -184,10 +184,11 @@ describe('initDb – additive-only seeding', () => {
     if (!gemini) throw new Error('GEMINI not seeded after initDb()');
     await dbModule.saveModelConfig({ ...gemini, modelName: 'user-custom-gemini-model' });
 
-    // Re-init simulates a server restart — the custom value must survive
-    await dbModule.initDb();
+    // Re-init simulates a server restart — fresh module with cold db singleton
+    const dbModuleB = await loadDbModule(dbPath);
+    await dbModuleB.initDb();
 
-    const after = dbModule.getModelConfigs().find((m) => m.id === 'GEMINI');
+    const after = dbModuleB.getModelConfigs().find((m) => m.id === 'GEMINI');
     expect(after?.modelName).toBe('user-custom-gemini-model');
   });
 });

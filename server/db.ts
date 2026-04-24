@@ -33,6 +33,9 @@ const DEFAULT_MODELS: ModelConfigStored[] = [
   { id: 'ANTHROPIC', name: 'Claude Sonnet 4.6', endpoint: 'https://api.anthropic.com/v1/messages', modelName: 'claude-sonnet-4.6', apiStyle: 'ANTHROPIC', avatarColor: '#d97757', description: 'Anthropic Sonnet 4.6', isCustom: false },
   { id: 'ZAI', name: 'glm-5.1', endpoint: 'https://api.z.ai/api/coding/paas/v4/chat/completions', modelName: 'glm-5.1', apiStyle: 'OPENAI', avatarColor: '#fff', description: 'Z.AI GLM 5.1', isCustom: true },
   { id: 'KIMI', name: 'Kimi K2.5', endpoint: 'https://api.kimi.com/coding/v1/chat/completions', modelName: 'kimi-for-coding', apiStyle: 'OPENAI', avatarColor: '#4e61e6', description: 'Kimi K2.5', isCustom: true },
+  { id: 'MINIMAX', name: 'Minimax-2.7', endpoint: 'https://api.minimax.chat/v1/chat/completions', modelName: 'Minimax-2.7', apiStyle: 'OPENAI', avatarColor: '#ff6b35', description: 'Minimax 2.7', isCustom: false },
+  { id: 'QWEN', name: 'Qwen-3.6 Plus', endpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', modelName: 'Qwen-3.6 Plus', apiStyle: 'OPENAI', avatarColor: '#6e40c9', description: 'Alibaba Qwen 3.6 Plus', isCustom: false },
+  { id: 'XAI', name: 'Grok-4.20', endpoint: 'https://api.x.ai/v1/chat/completions', modelName: 'grok-4.20-reasoning-latest', apiStyle: 'OPENAI', avatarColor: '#e8e8e8', description: 'xAI Grok 4.20 Reasoning', isCustom: false },
 ];
 
 let db: Low<DbSchema>;

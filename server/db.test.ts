@@ -49,7 +49,7 @@ describe('db', () => {
     expect(rawDb.keys.OPENAI.ciphertext).not.toContain('hello');
   });
 
-  it('initDb creates db file and seeds five default models', async () => {
+  it('initDb creates db file and seeds eight default models', async () => {
     const dbModule = await loadDbModule(dbPath);
 
     await dbModule.initDb();
@@ -60,15 +60,18 @@ describe('db', () => {
       keys: Record<string, unknown>;
     };
 
-    expect(storedModels).toHaveLength(5);
+    expect(storedModels).toHaveLength(8);
     expect(storedModels.map((model) => model.id)).toEqual([
       'GEMINI',
       'OPENAI',
       'ANTHROPIC',
       'ZAI',
       'KIMI',
+      'MINIMAX',
+      'QWEN',
+      'XAI',
     ]);
-    expect(rawDb.models).toHaveLength(5);
+    expect(rawDb.models).toHaveLength(8);
     expect(rawDb.keys).toEqual({});
   });
 
@@ -92,7 +95,7 @@ describe('db', () => {
       models: Array<{ id: string; name: string }>;
     };
 
-    expect(storedModels).toHaveLength(6);
+    expect(storedModels).toHaveLength(9);
     expect(storedModels.find((model) => model.id === 'LOCAL')?.name).toBe('Local Model');
     expect(rawDb.models.find((model) => model.id === 'LOCAL')?.name).toBe('Local Model');
   });
@@ -114,7 +117,7 @@ describe('db', () => {
 
     const storedModels = dbModule.getModelConfigs();
 
-    expect(storedModels).toHaveLength(5);
+    expect(storedModels).toHaveLength(8);
     expect(storedModels.find((model) => model.id === 'OPENAI')).toEqual({
       id: 'OPENAI',
       name: 'GPT-4.1',
@@ -135,7 +138,7 @@ describe('db', () => {
 
     const storedModels = dbModule.getModelConfigs();
 
-    expect(storedModels).toHaveLength(4);
+    expect(storedModels).toHaveLength(7);
     expect(storedModels.some((model) => model.id === 'ZAI')).toBe(false);
   });
 

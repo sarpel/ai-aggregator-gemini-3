@@ -11,8 +11,6 @@ interface ProxyRequest {
   systemPrompt?: string;
 }
 
-const KIMI_CODE_MAX_OUTPUT_TOKENS = 32768;
-
 function setSseHeaders(res: Response): void {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -115,7 +113,6 @@ export async function handleOpenAIProxy(
     model: modelConfig.modelName,
     messages: messagesWithSystem,
     stream: true,
-    ...(modelConfig.id === 'KIMI' ? { max_tokens: KIMI_CODE_MAX_OUTPUT_TOKENS } : {}),
   };
 
   try {

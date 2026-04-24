@@ -130,7 +130,7 @@ All three new providers use the OpenAI-compatible wire format. The existing `han
 
 - [ ] **Step 1: Add MINIMAX, QWEN, XAI to DEFAULT_MODELS in server/db.ts**
 
-In `server/db.ts`, find the `DEFAULT_MODELS` array. After the last entry (`KIMI`), add:
+In `server/db.ts`, find the `DEFAULT_MODELS` array. Add:
 
 ```typescript
   { id: 'MINIMAX', name: 'Minimax-2.7', endpoint: 'https://api.minimax.chat/v1/chat/completions', modelName: 'Minimax-2.7', apiStyle: 'OPENAI', avatarColor: '#ff6b35', description: 'Minimax 2.7', isCustom: false },
@@ -165,7 +165,6 @@ Expected output includes:
 "id": "OPENAI",
 "id": "ANTHROPIC",
 "id": "ZAI",
-"id": "KIMI",
 "id": "MINIMAX",
 "id": "QWEN",
 "id": "XAI",
@@ -192,7 +191,7 @@ The frontend fetches models from `/api/models` on load. The `DEFAULT_MODELS` in 
 
 - [ ] **Step 1: Add MINIMAX, QWEN, XAI to DEFAULT_MODELS in config.ts**
 
-In `config.ts`, find the `DEFAULT_MODELS` array. After the last entry (`KIMI`), add:
+In `config.ts`, find the `DEFAULT_MODELS` array. Add:
 
 ```typescript
   {
@@ -407,7 +406,6 @@ GEMINI
 OPENAI
 ANTHROPIC
 ZAI
-KIMI
 MINIMAX
 QWEN
 XAI
@@ -458,7 +456,7 @@ cd /home/sarpel/ai-aggregator-gemini-3 && npm run dev
 ```
 
 Open `http://localhost:3000` in a browser. Click SETTINGS and confirm:
-- 8 provider cards are visible (GEMINI, OPENAI, ANTHROPIC, ZAI, KIMI, MINIMAX, QWEN, XAI)
+- 7 provider cards are visible (GEMINI, OPENAI, ANTHROPIC, ZAI, MINIMAX, QWEN, XAI)
 - Each card shows the correct model name and has API key input
 - `customAdapter.ts` file no longer exists in the project
 

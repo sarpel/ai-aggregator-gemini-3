@@ -25,7 +25,7 @@ Browser (React/Vite :3000)
                                 ├── GET  /api/models
                                 ├── PUT  /api/models/:id
                                 ├── POST /api/models/:id/key
-                                ├── POST /api/proxy/openai    ──► OpenAI / X.AI / KIMI / ZAI / Minimax / Qwen
+                                ├── POST /api/proxy/openai    ──► OpenAI / X.AI / ZAI / Minimax / Qwen
                                 ├── POST /api/proxy/anthropic ──► Anthropic
                                 └── POST /api/proxy/gemini   ──► Google Gemini SDK
 ```
@@ -122,6 +122,6 @@ The `RoutesModule` type alias becomes unused and can be removed from both files.
 1. `cd server && npm run build` — must exit 0 (no TypeScript errors)
 2. `npm test` (root) — all 46 tests must still pass
 3. Start server: `cd server && npm run dev`; start frontend: `npm run dev`
-4. Open Settings panel — confirm 8 providers listed (GEMINI, OPENAI, ANTHROPIC, ZAI, KIMI, MINIMAX, QWEN, XAI)
+4. Open Settings panel — confirm 7 providers listed (GEMINI, OPENAI, ANTHROPIC, ZAI, MINIMAX, QWEN, XAI)
 5. Change a model's `modelName` via UI, click Save, restart server — confirm the changed value persists
 6. Confirm `services/apiAdapters/customAdapter.ts` no longer exists

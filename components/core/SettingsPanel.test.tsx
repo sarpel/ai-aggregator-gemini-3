@@ -12,7 +12,6 @@ const mockModels: ModelConfig[] = [
   { id: 'OPENAI', name: 'GPT-5.4', provider: 'OPENAI', apiStyle: 'OPENAI', modelName: 'gpt-5.4', endpoint: 'https://api.openai.com/v1/chat/completions', isCustom: false, isSimulated: false, avatarColor: '#10a37f', description: 'OpenAI GPT-5.4' },
   { id: 'ANTHROPIC', name: 'claude-sonnet-4.6', provider: 'ANTHROPIC', apiStyle: 'ANTHROPIC', modelName: 'claude-sonnet-4.6', endpoint: 'https://api.anthropic.com/v1/messages', isCustom: false, isSimulated: false, avatarColor: '#d97757', description: 'Anthropic Sonnet 4.6' },
   { id: 'ZAI', name: 'glm-5.1', provider: 'ZAI', apiStyle: 'OPENAI', modelName: 'glm-5.1', endpoint: 'https://api.z.ai/api/coding/paas/v4', isCustom: true, isSimulated: false, avatarColor: '#fff', description: 'Z.AI GLM 5.1' },
-  { id: 'KIMI', name: 'Kimi K2.5', provider: 'KIMI', apiStyle: 'OPENAI', modelName: 'kimi-for-coding', endpoint: 'https://api.kimi.com/coding/v1/chat/completions', isCustom: true, isSimulated: false, avatarColor: '#4e61e6', description: 'Kimi K2.5' },
 ];
 
 describe('SettingsPanel', () => {
@@ -67,22 +66,21 @@ describe('SettingsPanel', () => {
     });
 
     // Verify each model name is rendered (some appear in both name and modelName inputs)
-    const allInputs = screen.getAllByDisplayValue(/gemini-3\.1-pro-preview|GPT-5\.4|claude-sonnet-4\.6|glm-5\.1|Kimi K2\.5/);
-    expect(allInputs.length).toBeGreaterThanOrEqual(5);
+    const allInputs = screen.getAllByDisplayValue(/gemini-3\.1-pro-preview|GPT-5\.4|claude-sonnet-4\.6|glm-5\.1/);
+    expect(allInputs.length).toBeGreaterThanOrEqual(4);
 
     // Verify at least one input for each expected value exists
     expect(screen.getAllByDisplayValue('gemini-3.1-pro-preview').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByDisplayValue('GPT-5.4').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByDisplayValue('claude-sonnet-4.6').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByDisplayValue('glm-5.1').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByDisplayValue('Kimi K2.5').length).toBeGreaterThanOrEqual(1);
 
     const endpoints = screen.getAllByPlaceholderText('https://api...');
-    expect(endpoints).toHaveLength(5);
+    expect(endpoints).toHaveLength(4);
     expect((endpoints[0] as HTMLInputElement).value).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:streamGenerateContent');
 
     const modelNames = screen.getAllByPlaceholderText('model-name');
-    expect(modelNames).toHaveLength(5);
+    expect(modelNames).toHaveLength(4);
     expect((modelNames[0] as HTMLInputElement).value).toBe('gemini-3.1-pro-preview');
   });
 

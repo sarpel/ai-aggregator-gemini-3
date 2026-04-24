@@ -58,18 +58,6 @@ export const DEFAULT_MODELS: ModelConfig[] = [
     "isSimulated": false
   },
   {
-    "id": "KIMI",
-    "name": "Kimi K2.5",
-    "provider": "KIMI",
-    "avatarColor": "#4e61e6",
-    "description": "Kimi K2.5",
-    "apiStyle": "OPENAI",
-    "endpoint": "https://api.kimi.com/coding/v1/chat/completions",
-    "modelName": "kimi-for-coding",
-    "isCustom": true,
-    "isSimulated": false
-  },
-  {
     "id": "MINIMAX",
     "name": "Minimax-2.7",
     "provider": "MINIMAX",

@@ -38,15 +38,6 @@ export const ZaiLogo = ({ color }: { color: string }) => (
   </svg>
 );
 
-export const KimiLogo = ({ color }: { color: string }) => (
-  <svg viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg" className="w-full h-full p-1">
-    <path d="M12 2C9.5 2 7.5 6.5 7.5 12s2 10 4.5 10c1.2 0 2.3-1.1 3.1-2.9C14.7 20.3 14 18.3 14 12c0-6.3-.7-8.3-1.1-9.1C14.3 2.9 13.2 2 12 2z" opacity="0.6" />
-    <path d="M12 2c1.8 0 3.4 2.5 4.2 6.2C14.6 6.4 13.4 5.5 12 5.5S9.4 6.4 7.8 8.2C8.6 4.5 10.2 2 12 2z" />
-    <path d="M16.2 8.2c.5 2.2.8 4.8.8 7.8 0 1.3-.1 2.5-.2 3.6C15.6 16.9 14 12.9 14 12c0-3.6 1.2-5.5 2.2-3.8z" opacity="0.3" />
-    <circle cx="16" cy="8" r="2" />
-  </svg>
-);
-
 export const ModelLogo = ({ providerId, color, mini }: { providerId?: string, color: string, mini?: boolean }) => {
     const size = mini ? 20 : 24;
     switch (providerId) {
@@ -54,7 +45,6 @@ export const ModelLogo = ({ providerId, color, mini }: { providerId?: string, co
       case 'OPENAI': return <OpenAILogo color={color} />;
       case 'ANTHROPIC': return <AnthropicLogo color={color} />;
       case 'ZAI': return <ZaiLogo color={color} />;
-      case 'KIMI': return <KimiLogo color={color} />;
       default: return <Cpu size={size} style={{ color }} />;
     }
 };

@@ -41,16 +41,6 @@
       "isCustom": true
     },
     {
-      "id": "KIMI",
-      "name": "Kimi K2.5",
-      "endpoint": "https://api.kimi.com/coding/v1/chat/completions",
-      "modelName": "kimi-for-coding",
-      "apiStyle": "OPENAI",
-      "avatarColor": "#4e61e6",
-      "description": "Kimi K2.5",
-      "isCustom": true
-    },
-    {
       "id": "MINIMAX",
       "name": "MiniMax-M2.7",
       "endpoint": "https://api.minimax.io/v1/chat/completions",
@@ -105,12 +95,6 @@
       "iv": "fc8e6a0611c418b6618931d6",
       "tag": "505335d0158c2569db180cee24afee74",
       "salt": "5b40f18cb1860622be7106cc2dead07922893284ddda9720f3cc1d2e96bd8fed"
-    },
-    "KIMI": {
-      "ciphertext": "526c12bc0244be950caf0aaf57c77fdcac0c85058f79907a02975f8612a6507fb7ebf5623c220139154b8fae99d8ccebafb015a865621defc90c2d6b8076579a17c21632170ffca5",
-      "iv": "38c2ae9c5cb5de34b3c5a90f",
-      "tag": "ede39b1e86bfe48e95dba23f4e92de0d",
-      "salt": "b5e0067efeccc6a7baebda5156e661fa730f438944d69e1b7274d6965bf42410"
     },
     "QWEN": {
       "ciphertext": "08f65a3321248e7988d815928868f95f4ccee843e0b2a120e3cc56df060a656fafeaa5",

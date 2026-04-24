@@ -145,7 +145,7 @@ describe('e2e-flow integration', () => {
     app.use(cors());
     app.use(express.json());
     app.use(suppressReqClose);
-    app.use('/api', routesModule.default);
+    app.use('/api', routesModule.default as unknown as express.Router);
     app.post('/api/proxy/openai', handleOpenAIProxy);
     app.post('/api/proxy/anthropic', handleAnthropicProxy);
     app.post('/api/proxy/gemini', handleGeminiProxy);

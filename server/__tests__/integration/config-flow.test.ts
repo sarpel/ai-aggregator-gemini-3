@@ -27,7 +27,7 @@ describe('config-flow integration', () => {
     await dbModule.initDb();
 
     const routesModule = await import('../../routes.js');
-    const router = routesModule.default;
+    const router = routesModule.default as unknown as express.Router;
 
     const app = express();
     app.use(cors());

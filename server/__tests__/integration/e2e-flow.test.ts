@@ -53,7 +53,6 @@ function suppressReqClose(
 /* ------------------------------------------------------------------ */
 
 type DbModule = typeof import('../../db');
-type RoutesModule = typeof import('../../routes');
 
 function httpPost(
   url: string,
@@ -133,7 +132,7 @@ describe('e2e-flow integration', () => {
     await dbModule.initDb();
 
     // Import routes and proxy handlers
-    const routesModule: RoutesModule = await import('../../routes.js');
+    const routesModule = await import('../../routes.js');
     const { handleOpenAIProxy, handleAnthropicProxy, handleGeminiProxy } =
       await import('../../proxy.js');
 

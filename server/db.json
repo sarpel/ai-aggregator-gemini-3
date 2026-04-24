@@ -49,26 +49,37 @@
       "avatarColor": "#4e61e6",
       "description": "Kimi K2.5",
       "isCustom": true
+    },
+    {
+      "id": "MINIMAX",
+      "name": "Minimax-2.7",
+      "endpoint": "https://api.minimax.chat/v1/chat/completions",
+      "modelName": "Minimax-2.7",
+      "apiStyle": "OPENAI",
+      "avatarColor": "#ff6b35",
+      "description": "Minimax 2.7",
+      "isCustom": false
+    },
+    {
+      "id": "QWEN",
+      "name": "Qwen-3.6 Plus",
+      "endpoint": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+      "modelName": "Qwen-3.6 Plus",
+      "apiStyle": "OPENAI",
+      "avatarColor": "#6e40c9",
+      "description": "Alibaba Qwen 3.6 Plus",
+      "isCustom": false
+    },
+    {
+      "id": "XAI",
+      "name": "Grok-4.20",
+      "endpoint": "https://api.x.ai/v1/chat/completions",
+      "modelName": "grok-4.20-reasoning-latest",
+      "apiStyle": "OPENAI",
+      "avatarColor": "#e8e8e8",
+      "description": "xAI Grok 4.20 Reasoning",
+      "isCustom": false
     }
   ],
-  "keys": {
-    "GEMINI": {
-      "ciphertext": "7c37f29ab6d005bdbca3d955e9976670e3368ff95c15753663c73f8ce41df6072232601d806c90",
-      "iv": "06b4c2c07f7cfe5bce8b1fb7",
-      "tag": "bb1bf69c6eb4161d761a018bdd485d03",
-      "salt": "dcd5c587b26506cbb66f0fea15e30fe919329e4fa1c321d0b9817a2ac610f178"
-    },
-    "KIMI": {
-      "ciphertext": "a2c5d0f498a3dc5a5a938ccd15b77567a7a70b5b64bb3863d64ef2fb005033e72751cf2a852e1ccd06f26b066bd07f8f6d78314331954997d10531aff75f44c9f249b2e8e47ac105",
-      "iv": "3b39c3e20325a73e4354887c",
-      "tag": "80acd0aaf1e5bd2e7af2d4f1f344946f",
-      "salt": "80c0683ef6d75e756bb730608084619f1703491af459ea8cf397ef9398fa5cfe"
-    },
-    "ZAI": {
-      "ciphertext": "4f6a5971b6dc2128ceefb2f5537f76ff6d3b494e738b02a0783eceb9846e8c62b2fd385f3a93437a9e91c95b46c428e93d",
-      "iv": "34b53dc1600d35d81865fa36",
-      "tag": "baa56f1a4a22dfc181cfe1b22afadc56",
-      "salt": "a42dfb8273c2331fa4a0d2a798165bc03bd8c41dcab1bdedaebaaba49477999c"
-    }
-  }
+  "keys": {}
 }

@@ -7,7 +7,6 @@ import express from 'express';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type DbModule = typeof import('../../db');
-type RoutesModule = typeof import('../../routes');
 
 describe('config-flow integration', () => {
   let tempDir: string;
@@ -27,7 +26,7 @@ describe('config-flow integration', () => {
     const dbModule: DbModule = await import('../../db.js');
     await dbModule.initDb();
 
-    const routesModule: RoutesModule = await import('../../routes.js');
+    const routesModule = await import('../../routes.js');
     const router = routesModule.default;
 
     const app = express();

@@ -68,5 +68,41 @@ export const DEFAULT_MODELS: ModelConfig[] = [
     "modelName": "kimi-for-coding",
     "isCustom": true,
     "isSimulated": false
+  },
+  {
+    "id": "MINIMAX",
+    "name": "Minimax-2.7",
+    "provider": "MINIMAX",
+    "avatarColor": "#ff6b35",
+    "description": "Minimax 2.7",
+    "apiStyle": "OPENAI",
+    "endpoint": "https://api.minimax.chat/v1/chat/completions",
+    "modelName": "Minimax-2.7",
+    "isCustom": false,
+    "isSimulated": false
+  },
+  {
+    "id": "QWEN",
+    "name": "Qwen-3.6 Plus",
+    "provider": "QWEN",
+    "avatarColor": "#6e40c9",
+    "description": "Alibaba Qwen 3.6 Plus",
+    "apiStyle": "OPENAI",
+    "endpoint": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    "modelName": "Qwen-3.6 Plus",
+    "isCustom": false,
+    "isSimulated": false
+  },
+  {
+    "id": "XAI",
+    "name": "Grok-4.20",
+    "provider": "XAI",
+    "avatarColor": "#e8e8e8",
+    "description": "xAI Grok 4.20 Reasoning",
+    "apiStyle": "OPENAI",
+    "endpoint": "https://api.x.ai/v1/chat/completions",
+    "modelName": "grok-4.20-reasoning-latest",
+    "isCustom": false,
+    "isSimulated": false
   }
 ];

@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from "react";
 import { DEFAULT_MODELS } from "../../config";
 import { type ModelConfig, type ModelResponse, ModelStatus } from "../../types";
-import CyberTooltip from "../ui/CyberTooltip";
 import ModelAvatar from "../ui/ModelAvatar";
 import ModelDetailsModal from "./ModelDetailsModal";
 
@@ -16,6 +15,29 @@ interface ModelCardProps {
 	isActive: boolean;
 	response?: ModelResponse;
 	onSelect: (id: string) => void;
+}
+
+const MAX_PREVIEW_LENGTH = 220;
+
+function createModelPreview(
+	response: ModelResponse | undefined,
+	status: ModelStatus,
+	isError: boolean,
+): string {
+	if (!response) {
+		return "";
+	}
+
+	if (isError && response.error) {
+		return `Error: ${response.error}`;
+	}
+
+	const text = response.text.trim();
+	if (text.length <= MAX_PREVIEW_LENGTH) {
+		return text;
+	}
+
+	return text.slice(-MAX_PREVIEW_LENGTH).trimStart();
 }
 
 const ModelCard: React.FC<ModelCardProps> = React.memo(
@@ -44,14 +66,18 @@ const ModelCard: React.FC<ModelCardProps> = React.memo(
 		}
 
 		return (
-			<div
-				className={`relative p-3 border transition-all duration-300 overflow-hidden group flex flex-col ${
+			<button
+				type="button"
+				disabled={!isActive}
+				onClick={() => isActive && onSelect(model.id)}
+				className={`relative p-3 border transition-all duration-300 overflow-hidden group flex flex-col text-left disabled:cursor-default ${
 					isActive
 						? isError
 							? "border-red-500/50 bg-red-900/10 shadow-[0_0_15px_rgba(255,42,42,0.15)]"
 							: "border-cyber-gray bg-cyber-gray/10"
 						: "border-transparent opacity-30 grayscale"
 				} rounded-sm`}
+				aria-label={`${model.name} status ${status}`}
 			>
 				{/* Status Animation Overlay */}
 				{isActive &&
@@ -65,27 +91,14 @@ const ModelCard: React.FC<ModelCardProps> = React.memo(
 
 				{/* Header Info */}
 				<div className="flex items-center gap-3 relative z-10">
-					<CyberTooltip
-						content={
-							isActive ? "Click to view model details" : "Model Inactive"
-						}
-						position="right"
-					>
-						<button
-							type="button"
-							className="cursor-pointer transition-transform duration-200 hover:scale-105 active:scale-95 bg-transparent border-0 p-0 text-left"
-							onClick={() => isActive && onSelect(model.id)}
-						>
-							<ModelAvatar
-								providerId={model.id}
-								name={model.name}
-								color={isError ? "#ff2a2a" : model.avatarColor}
-								status={status}
-								mini
-								progress={response?.progress || 0}
-							/>
-						</button>
-					</CyberTooltip>
+					<ModelAvatar
+						providerId={model.id}
+						name={model.name}
+						color={isError ? "#ff2a2a" : model.avatarColor}
+						status={status}
+						mini
+						progress={response?.progress || 0}
+					/>
 
 					<div className="flex flex-col min-w-0">
 						<span
@@ -126,16 +139,14 @@ const ModelCard: React.FC<ModelCardProps> = React.memo(
 					<div
 						className={`absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent ${isError ? "via-red-500/5" : "via-cyber-neon/5"} to-transparent animate-scanline z-20 pointer-events-none`}
 					></div>
-					<div className="p-2 font-mono text-[9px] leading-3 h-full flex flex-col justify-end relative z-10">
+					<div className="p-2 font-mono text-[10px] leading-4 h-full flex flex-col justify-end relative z-10">
 						<div
-							className={`${isError ? "text-red-400" : "text-cyber-neon/80"} font-medium tracking-tight break-all whitespace-pre-wrap overflow-hidden`}
+							className={`${isError ? "text-red-400" : "text-cyber-neon/80"} font-medium tracking-tight break-words whitespace-pre-wrap overflow-hidden`}
 							style={{
 								maskImage: "linear-gradient(to bottom, transparent, black 20%)",
 							}}
 						>
-							{isError && response?.error
-								? `>>> SYSTEM FAILURE <<<\nCode: ${status}\nDetails: ${response.error}`
-								: response?.text.slice(-350)}
+							{createModelPreview(response, status, isError)}
 							{status === ModelStatus.STREAMING && (
 								<span className="inline-block w-1.5 h-3 bg-cyber-neon align-middle animate-pulse ml-0.5 shadow-[0_0_5px_#00f3ff]"></span>
 							)}
@@ -166,7 +177,7 @@ const ModelCard: React.FC<ModelCardProps> = React.memo(
 				{isActive && isError && (
 					<div className="absolute inset-0 bg-red-500/5 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-0" />
 				)}
-			</div>
+			</button>
 		);
 	},
 	(prev, next) => {
@@ -205,7 +216,7 @@ const StatusMatrix: React.FC<StatusMatrixProps> = ({
 
 	return (
 		<>
-			<div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+			<div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
 				{modelsToRender.map((model) => (
 					<ModelCard
 						key={model.id}

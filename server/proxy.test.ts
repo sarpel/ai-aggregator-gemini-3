@@ -31,6 +31,7 @@ type MockRes = {
   write: ReturnType<typeof vi.fn>;
   end: ReturnType<typeof vi.fn>;
   flush: ReturnType<typeof vi.fn>;
+  on: ReturnType<typeof vi.fn>;
   writableEnded: boolean;
 };
 
@@ -70,6 +71,7 @@ function createMockRes(): MockRes {
     write: vi.fn(),
     end: vi.fn(),
     flush: vi.fn(),
+    on: vi.fn(),
     writableEnded: false,
   };
 
@@ -179,6 +181,43 @@ describe('proxy handlers', () => {
     expect(res.write).toHaveBeenNthCalledWith(1, 'data: {"x":1}\n\n');
     expect(res.write).toHaveBeenNthCalledWith(2, 'data: [DONE]\n\n');
     expect(res.flush).toHaveBeenCalledTimes(2);
+    expect(res.end).toHaveBeenCalledOnce();
+  });
+
+  it('OpenAI proxy keeps streaming when the request body side closes normally', async () => {
+    getApiKeyMock.mockReturnValue('openai-key');
+    getModelConfigsMock.mockReturnValue([{
+      ...DEFAULT_MODEL_CONFIG,
+      id: 'model-1',
+      endpoint: 'https://api.openai.com/v1/chat/completions',
+      modelName: 'gpt-test',
+    }]);
+    fetchMock.mockImplementation(async (_url: string, init?: RequestInit) => {
+      if (init?.signal?.aborted) {
+        throw new DOMException('Request aborted before upstream fetch', 'AbortError');
+      }
+
+      return {
+        ok: true,
+        body: createMockReadableStream(['data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n', 'data: [DONE]\n\n']),
+      };
+    });
+
+    const req = createMockReq({
+      messages: [{ role: 'user', content: 'Ping' }],
+    });
+    req.on.mockImplementation((event: string, listener: () => void) => {
+      if (event === 'close') {
+        listener();
+      }
+      return req;
+    });
+    const res = createMockRes();
+
+    await handleOpenAIProxy(req as never, res as never);
+
+    expect(res.write).toHaveBeenNthCalledWith(1, 'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n');
+    expect(res.write).toHaveBeenNthCalledWith(2, 'data: [DONE]\n\n');
     expect(res.end).toHaveBeenCalledOnce();
   });
 
@@ -319,18 +358,18 @@ describe('proxy handlers', () => {
     });
 
     const req = createMockReq();
-    req.on.mockImplementation((event: string, handler: () => void) => {
+    const res = createMockRes();
+    res.on.mockImplementation((event: string, handler: () => void) => {
       if (event === 'close') {
         closeHandler = handler;
       }
 
-      return req;
+      return res;
     });
-    const res = createMockRes();
 
     await handleOpenAIProxy(req as never, res as never);
 
-    expect(req.on).toHaveBeenCalledWith('close', expect.any(Function));
+    expect(res.on).toHaveBeenCalledWith('close', expect.any(Function));
     expect(res.end).toHaveBeenCalledOnce();
   });
 });

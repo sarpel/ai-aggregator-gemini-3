@@ -73,10 +73,22 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 		});
 	}, [currentContent, isStreamingCurrentTab]);
 
-	const handleCopy = async (text: string) => {
+	const handleCopy = async (text?: string) => {
 		if (!text) return;
 		try {
-			await navigator.clipboard.writeText(text);
+			if (navigator.clipboard?.writeText) {
+				await navigator.clipboard.writeText(text);
+			} else {
+				const textArea = document.createElement("textarea");
+				textArea.value = text;
+				textArea.setAttribute("readonly", "true");
+				textArea.style.position = "fixed";
+				textArea.style.left = "-9999px";
+				document.body.appendChild(textArea);
+				textArea.select();
+				document.execCommand("copy");
+				document.body.removeChild(textArea);
+			}
 			setCopiedState(selectedTab);
 			setTimeout(() => setCopiedState(null), 2000);
 		} catch (err) {
@@ -104,14 +116,14 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 
 		if (streaming) {
 			return (
-				<pre className="whitespace-pre-wrap text-sm font-mono text-gray-200 leading-relaxed">
+				<pre className="whitespace-pre-wrap break-words text-sm font-mono text-gray-200 leading-relaxed max-w-full overflow-x-hidden">
 					{content}
 				</pre>
 			);
 		}
 
 		return (
-			<div className="prose prose-invert max-w-none prose-p:text-sm prose-pre:bg-black prose-pre:border prose-pre:border-cyber-gray">
+			<div className="prose prose-invert max-w-none prose-p:text-sm prose-p:leading-7 prose-p:break-words prose-li:break-words prose-pre:bg-black prose-pre:border prose-pre:border-cyber-gray prose-pre:whitespace-pre-wrap prose-pre:break-words prose-code:break-words overflow-x-hidden">
 				<ReactMarkdown>{content}</ReactMarkdown>
 			</div>
 		);
@@ -123,7 +135,7 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 
 	return (
 		<>
-			<div className="flex flex-col h-full border border-cyber-gray bg-black/50 backdrop-blur-sm rounded-sm shadow-2xl overflow-hidden relative group">
+			<div className="flex flex-col h-full border border-cyber-gray bg-black/50 backdrop-blur-sm rounded-sm shadow-2xl overflow-hidden relative">
 				{/* Tabs Header */}
 				<div className="flex overflow-x-auto border-b border-cyber-gray bg-black/80 no-scrollbar pr-16">
 					<CyberTooltip
@@ -195,6 +207,7 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 							type="button"
 							onClick={() => handleCopy(textToCopy)}
 							disabled={!textToCopy}
+							aria-label={isCopySuccess ? "Response copied" : "Copy selected response"}
 							className={`
                 flex items-center justify-center w-8 h-8 rounded border transition-all duration-300
                 ${
@@ -216,7 +229,7 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 				{/* Content Area */}
 				<div
 					ref={scrollContainerRef}
-					className="flex-1 overflow-y-auto p-6 bg-[url('/textures/carbon-fibre.png')] relative scroll-smooth"
+					className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 bg-[url('/textures/carbon-fibre.png')] relative scroll-smooth"
 				>
 					{selectedTab === "CONSENSUS" ? (
 						<div className="animate-fadeIn">
@@ -251,7 +264,7 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 									</CyberTooltip>
 								)}
 							</div>
-							<div className="bg-black/60 border border-cyber-neon/30 p-6 rounded shadow-[0_0_30px_rgba(0,243,255,0.05)] min-h-[200px]">
+							<div className="bg-black/60 border border-cyber-neon/30 p-4 md:p-6 rounded shadow-[0_0_30px_rgba(0,243,255,0.05)] min-h-[200px] max-w-full overflow-x-hidden">
 								{debouncedContent ? (
 									renderContent(debouncedContent, consensus.status as string === 'SYNTHESIZING')
 								) : (
@@ -307,7 +320,7 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 
 								return (
 									<>
-										<div className="flex items-center justify-between mb-4">
+										<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
 											<div className="flex items-center gap-3">
 												<div className="w-8 h-8 flex items-center justify-center bg-black border border-cyber-gray rounded">
 													<ModelLogo
@@ -317,8 +330,8 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 													/>
 												</div>
 												<div>
-													<h3 className="font-bold text-white">{model.name}</h3>
-													<p className="text-xs font-mono text-gray-400 flex items-center gap-2">
+													<h3 className="font-bold text-white break-words">{model.name}</h3>
+													<p className="text-xs font-mono text-gray-400 flex flex-wrap items-center gap-x-2 gap-y-1">
 														<span
 															className={
 																resp.status === ModelStatus.ERROR ||
@@ -375,20 +388,22 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 														type="button"
 														onClick={() => handleCopy(resp.text)}
 														disabled={!resp.text}
+														aria-label={isCopySuccess ? "Response copied" : `Copy ${model.name} response`}
 														className="p-1.5 text-gray-500 hover:text-cyber-neon hover:bg-cyber-neon/10 rounded border border-transparent hover:border-cyber-neon transition-all disabled:opacity-30"
 													>
-														<Copy size={14} />
+														{isCopySuccess ? <Check size={14} /> : <Copy size={14} />}
 													</button>
 												</CyberTooltip>
 											</div>
 										</div>
 
 										<div
-											className={`p-4 rounded border border-gray-800 bg-black/40 min-h-[200px] ${resp.status === ModelStatus.STREAMING ? "border-b-cyber-neon/50" : ""}`}
+											className={`p-4 rounded border border-gray-800 bg-black/40 min-h-[200px] max-w-full overflow-x-hidden ${resp.status === ModelStatus.STREAMING ? "border-b-cyber-neon/50" : ""}`}
 										>
 											{resp.error ? (
-												<div className="text-red-400 font-mono flex items-center gap-2">
-													<span className="text-xl">⚠</span> {resp.error}
+												<div className="text-red-400 font-mono flex items-start gap-2 whitespace-pre-wrap break-words">
+													<span className="text-xl shrink-0">⚠</span>
+													<span className="min-w-0">{resp.error}</span>
 												</div>
 											) : (
 												renderContent(debouncedContent, isStreamingCurrentTab)

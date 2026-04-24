@@ -5,14 +5,20 @@ interface CyberTooltipProps {
   children: React.ReactNode;
   position?: 'top' | 'bottom' | 'left' | 'right';
   className?: string;
+  disabled?: boolean;
 }
 
 const CyberTooltip: React.FC<CyberTooltipProps> = ({ 
   content, 
   children, 
   position = 'top',
-  className = ''
+  className = '',
+  disabled = true
 }) => {
+  if (disabled) {
+    return <>{children}</>;
+  }
+
   const posStyles = {
     top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
     bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
@@ -26,7 +32,8 @@ const CyberTooltip: React.FC<CyberTooltipProps> = ({
       <div className={`
         absolute ${posStyles[position]} z-[60]
         invisible group-hover:visible opacity-0 group-hover:opacity-100
-        transition-all duration-200 ease-out translate-y-1 group-hover:translate-y-0
+        transition-all duration-150 ease-out translate-y-1 group-hover:translate-y-0
+        delay-500 group-hover:delay-500
         px-3 py-1.5 min-w-max max-w-[200px]
         text-[10px] font-mono font-bold tracking-wide text-cyber-neon bg-black/95
         border border-cyber-gray shadow-[0_0_15px_rgba(0,243,255,0.15)]

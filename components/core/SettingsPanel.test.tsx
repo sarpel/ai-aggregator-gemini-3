@@ -12,7 +12,7 @@ const mockModels: ModelConfig[] = [
   { id: 'OPENAI', name: 'GPT-5.4', provider: 'OPENAI', apiStyle: 'OPENAI', modelName: 'gpt-5.4', endpoint: 'https://api.openai.com/v1/chat/completions', isCustom: false, isSimulated: false, avatarColor: '#10a37f', description: 'OpenAI GPT-5.4' },
   { id: 'ANTHROPIC', name: 'claude-sonnet-4.6', provider: 'ANTHROPIC', apiStyle: 'ANTHROPIC', modelName: 'claude-sonnet-4.6', endpoint: 'https://api.anthropic.com/v1/messages', isCustom: false, isSimulated: false, avatarColor: '#d97757', description: 'Anthropic Sonnet 4.6' },
   { id: 'ZAI', name: 'glm-5.1', provider: 'ZAI', apiStyle: 'OPENAI', modelName: 'glm-5.1', endpoint: 'https://api.z.ai/api/coding/paas/v4', isCustom: true, isSimulated: false, avatarColor: '#fff', description: 'Z.AI GLM 5.1' },
-  { id: 'KIMI', name: 'Kimi K2.5', provider: 'KIMI', apiStyle: 'OPENAI', modelName: 'kimi-for-coding', endpoint: 'https://api.kimi.com/coding/v1', isCustom: true, isSimulated: false, avatarColor: '#4e61e6', description: 'Kimi K2.5' },
+  { id: 'KIMI', name: 'Kimi K2.5', provider: 'KIMI', apiStyle: 'OPENAI', modelName: 'kimi-for-coding', endpoint: 'https://api.kimi.com/coding/v1/chat/completions', isCustom: true, isSimulated: false, avatarColor: '#4e61e6', description: 'Kimi K2.5' },
 ];
 
 describe('SettingsPanel', () => {

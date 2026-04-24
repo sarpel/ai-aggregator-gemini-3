@@ -11,6 +11,8 @@ interface ProxyRequest {
   systemPrompt?: string;
 }
 
+const KIMI_CODE_MAX_OUTPUT_TOKENS = 32768;
+
 function setSseHeaders(res: Response): void {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -22,8 +24,32 @@ function writeSseError(res: Response, error: string): void {
   res.end();
 }
 
+function formatUpstreamError(status: number, errorBody: string): string {
+  const normalizedBody = errorBody.replace(/\s+/g, ' ').trim();
+  if (!normalizedBody) {
+    return `Upstream error: ${status}`;
+  }
+
+  return `Upstream error: ${status} - ${normalizedBody.slice(0, 500)}`;
+}
+
 function flushResponse(res: FlushableResponse): void {
   res.flush?.();
+}
+
+function abortUpstreamOnPrematureResponseClose(
+  res: FlushableResponse,
+  modelId: string,
+  abort: () => void,
+): void {
+  res.on('close', () => {
+    if (res.writableEnded) {
+      return;
+    }
+
+    console.log(`[PROXY/${modelId}] Client disconnected, aborting upstream request`);
+    abort();
+  });
 }
 
 async function pipeUpstreamBodyToResponse(
@@ -73,9 +99,8 @@ export async function handleOpenAIProxy(
     console.warn(`[PROXY/OPENAI] Upstream timeout for ${req.body.modelId}`);
     controller.abort();
   }, 60_000);
-  req.on('close', () => {
+  abortUpstreamOnPrematureResponseClose(res, req.body.modelId, () => {
     clearTimeout(timeoutId);
-    console.log(`[PROXY/${req.body.modelId}] Client disconnected, aborting upstream request`);
     controller.abort();
   });
 
@@ -90,6 +115,7 @@ export async function handleOpenAIProxy(
     model: modelConfig.modelName,
     messages: messagesWithSystem,
     stream: true,
+    ...(modelConfig.id === 'KIMI' ? { max_tokens: KIMI_CODE_MAX_OUTPUT_TOKENS } : {}),
   };
 
   try {
@@ -111,7 +137,7 @@ export async function handleOpenAIProxy(
     if (!response.ok) {
       const errorBody = await response.text().catch(() => '');
       console.error(`[PROXY/OPENAI] Upstream error ${response.status}: ${errorBody}`);
-      writeSseError(res, `Upstream error: ${response.status}`);
+      writeSseError(res, formatUpstreamError(response.status, errorBody));
       return;
     }
 
@@ -173,9 +199,8 @@ export async function handleAnthropicProxy(
     console.warn(`[PROXY/ANTHROPIC] Upstream timeout for ${req.body.modelId}`);
     controller.abort();
   }, 60_000);
-  req.on('close', () => {
+  abortUpstreamOnPrematureResponseClose(res, req.body.modelId, () => {
     clearTimeout(timeoutId);
-    console.log(`[PROXY/${req.body.modelId}] Client disconnected, aborting upstream request`);
     controller.abort();
   });
 
@@ -211,7 +236,7 @@ export async function handleAnthropicProxy(
     if (!response.ok) {
       const errorBody = await response.text().catch(() => '');
       console.error(`[PROXY/ANTHROPIC] Upstream error ${response.status}: ${errorBody}`);
-      writeSseError(res, `Upstream error: ${response.status}`);
+      writeSseError(res, formatUpstreamError(response.status, errorBody));
       return;
     }
 
@@ -288,7 +313,7 @@ export async function handleGeminiProxy(
   let isClosed = req.socket.destroyed;
   let responseIterator: AsyncGenerator<GenerateContentResponse> | null = null;
 
-  req.on('close', () => {
+  abortUpstreamOnPrematureResponseClose(res, req.body.modelId, () => {
     console.log(`[PROXY/GEMINI] Client disconnected for ${req.body.modelId}`);
     isClosed = true;
     if (responseIterator && typeof responseIterator.return === 'function') {

@@ -156,3 +156,38 @@ describe('db', () => {
     expect(dbModule.getApiKey('UNKNOWN')).toBeNull();
   });
 });
+
+describe('initDb – additive-only seeding', () => {
+  let tempDirPath: string;
+  let dbPath: string;
+
+  beforeEach(async () => {
+    tempDirPath = await mkdtemp(join(tmpdir(), 'neurosync-db-'));
+    dbPath = join(tempDirPath, 'db.json');
+  });
+
+  afterEach(async () => {
+    delete process.env.DB_PATH;
+    delete process.env.ENCRYPTION_KEY;
+    vi.resetModules();
+    await rm(tempDirPath, { recursive: true, force: true });
+  });
+
+  it('does not overwrite user-edited modelName on re-init', async () => {
+    // First init seeds the DB
+    const dbModule = await loadDbModule(dbPath);
+    await dbModule.initDb();
+
+    // Simulate user saving a custom modelName via the Settings UI
+    const models = dbModule.getModelConfigs();
+    const gemini = models.find((m) => m.id === 'GEMINI');
+    if (!gemini) throw new Error('GEMINI not seeded after initDb()');
+    await dbModule.saveModelConfig({ ...gemini, modelName: 'user-custom-gemini-model' });
+
+    // Re-init simulates a server restart — the custom value must survive
+    await dbModule.initDb();
+
+    const after = dbModule.getModelConfigs().find((m) => m.id === 'GEMINI');
+    expect(after?.modelName).toBe('user-custom-gemini-model');
+  });
+});

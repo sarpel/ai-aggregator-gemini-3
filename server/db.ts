@@ -148,12 +148,12 @@ export async function initDb(): Promise<void> {
     db.data.models = DEFAULT_MODELS.map(cloneModelConfig);
     await persistDb(db);
   } else {
-    // Sync seeded models (default entries) with updated defaults
+    // Add any default models not yet in the DB (additive only — never overwrite user changes)
+    const existingIds = new Set(db.data.models.map((m) => m.id));
     let needsPersist = false;
-    for (const stored of db.data.models) {
-      const updated = DEFAULT_MODELS.find((d) => d.id === stored.id);
-      if (updated) {
-        Object.assign(stored, cloneModelConfig(updated));
+    for (const def of DEFAULT_MODELS) {
+      if (!existingIds.has(def.id)) {
+        db.data.models.push(cloneModelConfig(def));
         needsPersist = true;
       }
     }

@@ -139,6 +139,9 @@ function reducer(state: AppState, action: AppAction): AppState {
         consensus: {
           ...state.consensus,
           status: ConsensusStatus.ANALYZING,
+          text: '',
+          confidence: 0,
+          contributors: [],
         },
       };
     case 'UPDATE_RESPONSE': {
@@ -377,7 +380,7 @@ export default function App() {
               type: 'UPDATE_RESPONSE',
               modelId,
               data: {
-                status: ModelStatus.ERROR,
+                status: error === 'Request timed out' ? ModelStatus.TIMEOUT : ModelStatus.ERROR,
                 error,
                 latency: Date.now() - startTime,
               },

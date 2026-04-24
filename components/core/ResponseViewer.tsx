@@ -94,13 +94,21 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 		return () => clearTimeout(timer);
 	}, [currentContent]);
 
-	const renderContent = useCallback((content: string) => {
+	const renderContent = useCallback((content: string, streaming = false) => {
 		if (!content)
 			return (
 				<div className="text-gray-600 italic font-mono">
 					Initialized. Awaiting data stream...
 				</div>
 			);
+
+		if (streaming) {
+			return (
+				<pre className="whitespace-pre-wrap text-sm font-mono text-gray-200 leading-relaxed">
+					{content}
+				</pre>
+			);
+		}
 
 		return (
 			<div className="prose prose-invert max-w-none prose-p:text-sm prose-pre:bg-black prose-pre:border prose-pre:border-cyber-gray">
@@ -245,7 +253,7 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 							</div>
 							<div className="bg-black/60 border border-cyber-neon/30 p-6 rounded shadow-[0_0_30px_rgba(0,243,255,0.05)] min-h-[200px]">
 								{debouncedContent ? (
-									renderContent(debouncedContent)
+									renderContent(debouncedContent, consensus.status as string === 'SYNTHESIZING')
 								) : (
 									<div className="flex flex-col items-center justify-center h-32 opacity-50">
 										<Cpu
@@ -383,7 +391,7 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 													<span className="text-xl">⚠</span> {resp.error}
 												</div>
 											) : (
-												renderContent(debouncedContent)
+												renderContent(debouncedContent, isStreamingCurrentTab)
 											)}
 											{resp.status === ModelStatus.STREAMING && (
 												<span className="inline-block w-2 h-4 ml-1 bg-cyber-neon animate-pulse align-middle" />

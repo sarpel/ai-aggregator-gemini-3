@@ -18,6 +18,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const loadModels = useCallback(async (): Promise<ModelConfig[]> => {
     setLoading(true);
@@ -131,6 +132,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveError(null);
 
     try {
       const tasks = models.map(async (model) => {
@@ -194,6 +196,9 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
       const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
       if (failures.length > 0) {
         failures.forEach(f => console.error('Save error:', f.reason));
+        setSaveError(`${failures.length} model(s) failed to save. Check the console for details.`);
+        setSaving(false);
+        return;
       }
 
       const refreshedModels = await loadModels();
@@ -201,6 +206,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
       onClose();
     } catch (error) {
       console.error('Failed to save configuration', error);
+      setSaveError('An unexpected error occurred while saving. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -394,11 +400,16 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-cyber-gray/50 flex justify-end shrink-0 bg-cyber-black">
-          <CyberButton onClick={handleSave} variant="primary" loading={saving}>
-            <Save size={16} className="mr-2" />
-            SAVE CONFIGURATION
-          </CyberButton>
+        <div className="p-6 border-t border-cyber-gray/50 flex flex-col gap-3 shrink-0 bg-cyber-black">
+          {saveError && (
+            <p className="text-xs font-mono text-red-400 text-right">{saveError}</p>
+          )}
+          <div className="flex justify-end">
+            <CyberButton onClick={handleSave} variant="primary" loading={saving}>
+              <Save size={16} className="mr-2" />
+              SAVE CONFIGURATION
+            </CyberButton>
+          </div>
         </div>
 
       </div>

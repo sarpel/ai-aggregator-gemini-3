@@ -67,7 +67,14 @@ export async function handleOpenAIProxy(
   }
 
   const controller = new AbortController();
+  let timedOut = false;
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    console.warn(`[PROXY/OPENAI] Upstream timeout for ${req.body.modelId}`);
+    controller.abort();
+  }, 60_000);
   req.on('close', () => {
+    clearTimeout(timeoutId);
     console.log(`[PROXY/${req.body.modelId}] Client disconnected, aborting upstream request`);
     controller.abort();
   });
@@ -86,7 +93,8 @@ export async function handleOpenAIProxy(
   };
 
   try {
-    console.log(`[PROXY/OPENAI] Streaming ${modelConfig.modelName} → ${modelConfig.endpoint}`);
+    const socketDestroyed = req.socket?.destroyed ?? false;
+    console.log(`[PROXY/OPENAI] Streaming ${modelConfig.modelName} → ${modelConfig.endpoint} [socket.destroyed=${socketDestroyed}]`);
     const response = await fetch(modelConfig.endpoint, {
       method: 'POST',
       headers: {
@@ -94,9 +102,10 @@ export async function handleOpenAIProxy(
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(upstreamBody),
-      signal: req.socket.destroyed ? AbortSignal.abort() : controller.signal,
+      signal: socketDestroyed ? AbortSignal.abort() : controller.signal,
     });
 
+    clearTimeout(timeoutId);
     console.log(`[PROXY/OPENAI] Upstream responded: ${response.status} ${response.statusText}`);
 
     if (!response.ok) {
@@ -116,14 +125,20 @@ export async function handleOpenAIProxy(
     console.log(`[PROXY/OPENAI] Stream complete for ${req.body.modelId}`);
     res.end();
   } catch (error) {
+    clearTimeout(timeoutId);
     if (error instanceof Error && error.name === 'AbortError') {
       console.log(`[PROXY/OPENAI] Request aborted for ${req.body.modelId}`);
+      if (timedOut && !res.writableEnded) {
+        writeSseError(res, 'Request timed out');
+      } else if (!res.writableEnded) {
+        res.end();
+      }
     } else {
       console.error(`[PROXY/OPENAI] Error for ${req.body.modelId}:`, error);
-    }
-    if (!res.writableEnded) {
-      const message = error instanceof Error ? error.message : 'Unknown proxy error';
-      writeSseError(res, message);
+      if (!res.writableEnded) {
+        const message = error instanceof Error ? error.message : 'Unknown proxy error';
+        writeSseError(res, message);
+      }
     }
   }
 }
@@ -152,7 +167,14 @@ export async function handleAnthropicProxy(
   }
 
   const controller = new AbortController();
+  let timedOut = false;
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    console.warn(`[PROXY/ANTHROPIC] Upstream timeout for ${req.body.modelId}`);
+    controller.abort();
+  }, 60_000);
   req.on('close', () => {
+    clearTimeout(timeoutId);
     console.log(`[PROXY/${req.body.modelId}] Client disconnected, aborting upstream request`);
     controller.abort();
   });
@@ -183,6 +205,7 @@ export async function handleAnthropicProxy(
       signal: req.socket.destroyed ? AbortSignal.abort() : controller.signal,
     });
 
+    clearTimeout(timeoutId);
     console.log(`[PROXY/ANTHROPIC] Upstream responded: ${response.status} ${response.statusText}`);
 
     if (!response.ok) {
@@ -202,14 +225,20 @@ export async function handleAnthropicProxy(
     console.log(`[PROXY/ANTHROPIC] Stream complete for ${req.body.modelId}`);
     res.end();
   } catch (error) {
+    clearTimeout(timeoutId);
     if (error instanceof Error && error.name === 'AbortError') {
       console.log(`[PROXY/ANTHROPIC] Request aborted for ${req.body.modelId}`);
+      if (timedOut && !res.writableEnded) {
+        writeSseError(res, 'Request timed out');
+      } else if (!res.writableEnded) {
+        res.end();
+      }
     } else {
       console.error(`[PROXY/ANTHROPIC] Error for ${req.body.modelId}:`, error);
-    }
-    if (!res.writableEnded) {
-      const message = error instanceof Error ? error.message : 'Unknown proxy error';
-      writeSseError(res, message);
+      if (!res.writableEnded) {
+        const message = error instanceof Error ? error.message : 'Unknown proxy error';
+        writeSseError(res, message);
+      }
     }
   }
 }

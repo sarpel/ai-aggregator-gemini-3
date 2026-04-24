@@ -69,13 +69,17 @@ export const streamViaProxy = async (params: ProxyStreamParams): Promise<void> =
 
   try {
     console.log(`[PROXY/${params.modelId}] Sending ${params.apiStyle} stream request...`);
+    const timeoutSignal = AbortSignal.timeout(60_000);
+    const combinedSignal = params.abortSignal
+      ? AbortSignal.any([params.abortSignal, timeoutSignal])
+      : timeoutSignal;
     const response = await fetch(proxyUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
-      signal: params.abortSignal,
+      signal: combinedSignal,
     });
 
     if (!response.ok) {
@@ -156,6 +160,12 @@ export const streamViaProxy = async (params: ProxyStreamParams): Promise<void> =
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       console.log(`[PROXY/${params.modelId}] Stream aborted by user`);
+      return;
+    }
+
+    if (error instanceof DOMException && error.name === 'TimeoutError') {
+      console.warn(`[PROXY/${params.modelId}] Stream timed out`);
+      params.onError('Request timed out');
       return;
     }
 

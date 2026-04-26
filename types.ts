@@ -86,7 +86,6 @@ export type AppAction =
   | { type: 'ADD_MODEL_CONFIG'; config: ModelConfig }
   | { type: 'UPDATE_MODEL_CONFIG'; id: string; updates: Partial<ModelConfig> }
   | { type: 'REMOVE_MODEL_CONFIG'; id: string }
-  | { type: 'SET_API_KEY'; payload: { modelId: string; key: string } }
   | { type: 'TOGGLE_MODEL'; modelId: string }
   | { type: 'START_REQUEST'; payload: string }
   | { type: 'RETRY_REQUEST'; modelId: string }

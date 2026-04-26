@@ -54,6 +54,9 @@ const createInitialState = (): AppState => ({
   history: [],
 });
 
+const getFallbackSynthesizerModelId = (configs: ModelConfig[], deletedModelId: string): string =>
+  configs.find((config) => config.id !== deletedModelId)?.id ?? 'GEMINI';
+
 const initialState = createInitialState();
 
 function reducer(state: AppState, action: AppAction): AppState {
@@ -92,12 +95,20 @@ function reducer(state: AppState, action: AppAction): AppState {
     case 'REMOVE_MODEL_CONFIG': {
       const nextResponses = { ...state.responses };
       delete nextResponses[action.id];
+      const nextModelConfigs = state.modelConfigs.filter((config) => config.id !== action.id);
+      const nextSynthesizerConfig = state.synthesizerConfig.modelId === action.id
+        ? {
+            ...state.synthesizerConfig,
+            modelId: getFallbackSynthesizerModelId(state.modelConfigs, action.id),
+          }
+        : state.synthesizerConfig;
 
       return {
         ...state,
-        modelConfigs: state.modelConfigs.filter((config) => config.id !== action.id),
+        modelConfigs: nextModelConfigs,
         responses: nextResponses,
         activeModels: state.activeModels.filter((modelId) => modelId !== action.id),
+        synthesizerConfig: nextSynthesizerConfig,
       };
     }
     case 'TOGGLE_MODEL':
@@ -214,6 +225,12 @@ export default function App() {
   const [promptInput, setPromptInput] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const synthesisTriggeredRef = useRef(false);
+  const abortControllersRef = useRef<Set<AbortController>>(new Set());
+
+  const abortActiveStreams = useCallback(() => {
+    abortControllersRef.current.forEach((controller) => controller.abort());
+    abortControllersRef.current.clear();
+  }, []);
 
   useEffect(() => {
     fetch('/api/models')
@@ -246,6 +263,8 @@ export default function App() {
     }
 
     let fullText = '';
+    const controller = new AbortController();
+    abortControllersRef.current.add(controller);
 
     try {
       await streamViaProxy({
@@ -253,6 +272,7 @@ export default function App() {
         apiStyle: modelConfig.apiStyle,
         messages: [{ role: 'user', content: synthesisPrompt, timestamp: Date.now() }],
         systemPrompt,
+        abortSignal: controller.signal,
         onChunk: (chunk) => {
           fullText += chunk;
           dispatch({ type: 'UPDATE_CONSENSUS', payload: { text: fullText } });
@@ -282,6 +302,8 @@ export default function App() {
           text: `Synthesis Error: ${error instanceof Error ? error.message : String(error)}`,
         },
       });
+    } finally {
+      abortControllersRef.current.delete(controller);
     }
   }, [state.currentPrompt, state.responses, state.synthesizerConfig, state.modelConfigs]);
 
@@ -326,6 +348,8 @@ export default function App() {
 
       const startTime = Date.now();
       let accumulatedText = '';
+      const controller = new AbortController();
+      abortControllersRef.current.add(controller);
 
       dispatch({
         type: 'UPDATE_RESPONSE',
@@ -347,6 +371,7 @@ export default function App() {
           modelId,
           apiStyle: config.apiStyle,
           messages,
+          abortSignal: controller.signal,
           onChunk: (chunk) => {
             accumulatedText += chunk;
 
@@ -399,6 +424,8 @@ export default function App() {
             latency: Date.now() - startTime,
           },
         });
+      } finally {
+        abortControllersRef.current.delete(controller);
       }
     },
     [state.modelConfigs],
@@ -436,9 +463,10 @@ export default function App() {
   }, []);
 
   const handleNewQuery = useCallback(() => {
+    abortActiveStreams();
     setPromptInput('');
     dispatch({ type: 'CLEAR_OUTPUTS' });
-  }, []);
+  }, [abortActiveStreams]);
 
   if (!state.configLoaded) {
     return <div className="loading-screen">Loading configuration...</div>;

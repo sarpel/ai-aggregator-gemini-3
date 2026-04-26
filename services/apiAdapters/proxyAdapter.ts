@@ -72,6 +72,15 @@ const extractChunkText = (apiStyle: ApiStyle, payload: unknown): string => {
   return typeof eventPayload.text === 'string' ? eventPayload.text : '';
 };
 
+const isStreamCompletionEvent = (apiStyle: ApiStyle, payload: unknown): boolean => {
+  if (!payload || typeof payload !== 'object') {
+    return false;
+  }
+
+  const eventPayload = payload as { type?: unknown };
+  return apiStyle === 'ANTHROPIC' && eventPayload.type === 'message_stop';
+};
+
 export const streamViaProxy = async (params: ProxyStreamParams): Promise<void> => {
   const proxyUrl = PROXY_URLS_BY_API_STYLE[params.apiStyle];
   const requestBody: ProxyRequestBody = {
@@ -133,6 +142,15 @@ export const streamViaProxy = async (params: ProxyStreamParams): Promise<void> =
 
       try {
         const json = JSON.parse(jsonStr) as unknown;
+        if (isStreamCompletionEvent(params.apiStyle, json)) {
+          if (!hasCompleted) {
+            hasCompleted = true;
+            params.onComplete();
+          }
+          shouldStop = true;
+          return;
+        }
+
         const content = extractChunkText(params.apiStyle, json);
         if (content) {
           params.onChunk(content);
@@ -169,8 +187,7 @@ export const streamViaProxy = async (params: ProxyStreamParams): Promise<void> =
     }
 
     if (!hasCompleted) {
-      hasCompleted = true;
-      params.onComplete();
+      params.onError('Stream ended prematurely — no completion event received');
     }
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {

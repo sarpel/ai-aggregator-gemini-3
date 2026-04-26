@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom";
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsPanel from './SettingsPanel';
 import type { ModelConfig } from '../../types';
 
@@ -20,7 +20,7 @@ describe('SettingsPanel', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    global.fetch = vi.fn().mockImplementation((url: string | URL | Request, options?: RequestInit) => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string | URL | Request, options?: RequestInit) => {
       const requestUrl = typeof url === 'string' ? url : url instanceof URL ? url.toString() : url.url;
       const requestOptions = options as FetchOptions | undefined;
 
@@ -48,14 +48,16 @@ describe('SettingsPanel', () => {
         return Promise.resolve({ ok: true, json: async () => ({}) });
       }
       return Promise.reject(new Error('Not mocked'));
-    });
+    }));
 
     // Mock crypto.randomUUID
-    Object.defineProperty(global, 'crypto', {
-      value: {
-        randomUUID: () => 'test-uuid-1234'
-      }
+    vi.stubGlobal('crypto', {
+      randomUUID: () => 'test-uuid-1234',
     });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('renders seeded default models', async () => {

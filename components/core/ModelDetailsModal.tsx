@@ -79,6 +79,7 @@ export const ModelDetailsModal: React.FC<ModelDetailsModalProps> = ({
 					</div>
 					<button
 						type="button"
+						aria-label="Close model details"
 						onClick={onClose}
 						className="text-gray-500 hover:text-white transition-colors p-1 hover:bg-white/10 rounded"
 					>

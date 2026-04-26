@@ -147,6 +147,13 @@ router.put('/models/:id', async (req: Request, res: Response) => {
     return res.status(404).json({ error: 'Model not found' });
   }
 
+  if (
+    existingConfig.isCustom === false &&
+    (body.endpoint !== undefined || body.modelName !== undefined || body.apiStyle !== undefined)
+  ) {
+    return res.status(403).json({ error: 'Cannot modify provider routing for default models' });
+  }
+
   if (body.apiStyle !== undefined && !isApiStyle(body.apiStyle)) {
     return badRequest(res, 'Field "apiStyle" must be one of OPENAI, ANTHROPIC, GEMINI');
   }

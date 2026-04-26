@@ -1,10 +1,10 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 #
-# CodeRabbit Configuration — microWakeWord workspace
+# CodeRabbit Configuration — ai-aggregator-gemini-3
 # Exhaustive review on every push, no limits, no exceptions.
 
 language: "tr"
-early_access: true
+early_access: false
 tone_instructions: "Blunt, technical, exhaustive. Turkish feedback, English config. Focus: functional bugs, runtime correctness, performance, data corruption, resource leaks. Provide: what's wrong, why it breaks, exact fix as code."
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -105,29 +105,6 @@ reviews:
         Teach — explain the reasoning so the author learns. If nothing is wrong,
         stay silent. No filler, no fluff.
 
-    # ── Core package: training & inference internals ────────────────────────
-    - path: "microWakeWord/microwakeword/**/*.py"
-      instructions: |
-        This is the installable microwakeword package. Review exhaustively for:
-        - **Functional correctness**: off-by-one errors, inverted conditions, wrong
-          axis/dtype on tensors, silent exception swallowing, mutation of caller-owned
-          data structures.
-        - **TensorFlow data pipeline**: correct .unbatch() → .shuffle() → .batch()
-          ordering; proper use of .cache(), .prefetch(tf.data.AUTOTUNE); no Python
-          loops over tensors where vectorized ops apply.
-        - **Training loop**: LR schedule applied at correct step; phase transitions
-          triggered at correct count; optimizer state matches checkpoint restore;
-          metrics reset between epochs/phases.
-        - **Spectrogram handling**: always uses prepare_spectrogram() for dtype/scale
-          normalization — never ad-hoc float32 casts on uint16 arrays.
-        - **Loss computation**: correct reduction mode for loss tensor shapes; class
-          weights on correct axis; no NaN-producing divisions.
-        - **Memory & resource leaks**: unclosed file handles, unreleased mmap arrays,
-          GPU tensors not freed, effect cleanup missing.
-        - **Performance**: O(N²) loops where O(N log N) or O(N) achievable; repeated
-          dataset construction inside loops; full in-memory materialisation when
-          streaming/mmap possible.
-
     # ── CLI & operational scripts ────────────────────────────────────────────
     - path: "scripts/**/*.py"
       instructions: |
@@ -175,16 +152,6 @@ reviews:
         - References to commands, paths, and configs that still exist and are correct.
         - No outdated instructions that contradict the current code.
         - Internal links point to valid files/sections.
-
-    # ── Build & packaging ───────────────────────────────────────────────────
-    - path: "microWakeWord/pyproject.toml"
-      instructions: |
-        Python package configuration. Verify dependency versions are consistent
-        and compatible with Python >=3.10 and TensorFlow >=2.16.
-
-    - path: "microWakeWord/setup.py"
-      instructions: |
-        Legacy setup.py. If it exists, verify it stays in sync with pyproject.toml.
 
   # ── Pre-merge checks — hardcore only ──────────────────────────────────────
   pre_merge_checks:

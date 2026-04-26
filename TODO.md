@@ -1,30 +1,33 @@
 # TODO
 
 ## Impact map
-- Config/docs: `.coderabbit.yaml`, `.gitignore`, `AGENTS.md`, `README.md`, `server/.env.example`.
-- Frontend behavior/a11y: `App.tsx`, `components/core/*`, `components/ui/CyberTooltip.tsx`, `constants.ts`, `services/apiAdapters/proxyAdapter.ts`, `types.ts`.
-- Backend/runtime security: `server/db.ts`, `server/index.ts`, `server/proxy.ts`, `server/package.json`, `server/package-lock.json`, removed tracked `server/.env` and `server/db.json`.
-- Tests/helpers: `components/core/SettingsPanel.test.tsx`, `server/db.test.ts`, `server/__tests__/helpers/mockLLMServer.ts`, `server/__tests__/integration/*.test.ts`.
+- `services/apiAdapters/proxyAdapter.ts`: distinguish valid Anthropic `message_stop` completion from premature stream close.
+- `App.tsx`: abort active proxy streams on New Query and repair orphaned synthesizer model IDs.
+- `server/routes.ts` + `server/routes.test.ts`: block default-model provider routing mutation while preserving safe metadata updates.
+- `types.ts`: remove dead `SET_API_KEY` action variant.
+- `install_and_run.bat`: start backend and frontend; convert to CRLF for Windows batch reliability.
+- `components/core/ResponseViewer.tsx` and `ModelDetailsModal.tsx`: finish type-safe enum/accessibility PR items.
+- `.coderabbit.yaml`: remove stale microWakeWord project settings and disable early access.
+- `components/core/SettingsPanel.test.tsx`: isolate global mocks.
+- `server/db.test.ts`: make encryption assertion meaningful with hex-safe plaintext checks.
 
 ## Assumptions
-- Removing tracked `server/.env` and `server/db.json` from the working tree is the correct local remediation for committed secrets. Confidence: 9/10. Evidence: both files were tracked and contained secret material; `.gitignore` already/now ignores them. Fallback: operators must rotate keys and purge history outside this working-tree-only fix.
-- Keeping Express 4 and downgrading typings to Express 4 is lower risk than upgrading to Express 5. Confidence: 9/10. Evidence: project docs and installed runtime are Express 4.22.1.
-- Async `crypto.scrypt` must propagate through `getApiKey` rather than keeping sync encryption. Confidence: 10/10. Evidence: review explicitly requested async scrypt and awaiting callers.
+- Anthropic normal completion should be detected from `message_stop`, not raw socket close. Confidence: 9/10. Evidence: `server/proxy.ts` pipes Anthropic upstream SSE and does not append `[DONE]`; mock server emits `message_stop`. Fallback: if upstream format changes, premature-close handling still reports an error instead of false completion.
+- Default built-in model display metadata may remain editable, but provider routing fields (`endpoint`, `modelName`, `apiStyle`) must not be mutable. Confidence: 9/10. Evidence: PR item specifically identifies stored-key exfiltration via endpoint/modelName/apiStyle mutation. Fallback: custom models remain fully editable.
+- The batch-file CRLF requirement cannot be reliably represented by `apply_patch` alone, so a targeted Python newline conversion is required after content edits. Confidence: 8/10. Evidence: Windows batch reviewer item explicitly requires CRLF. Fallback: verify bytes contain CRLF after conversion.
 
 ## Ordered tasks
-1. [x] Verify each reported finding against current files before fixing.
-2. [x] Fix config and documentation validation/port/version issues.
-3. [x] Remove tracked secret files from the working tree, ignore runtime secrets, and add safe env example.
-4. [x] Fix frontend runtime correctness, accessibility, copy fallback, tooltip, model selection, and type consistency issues.
-5. [x] Fix backend async encryption, decryption errors, env key generation race/write handling, CORS/body limits, socket safety, Gemini timeout, and Express typings alignment.
-6. [x] Fix test helper and integration/unit test issues impacted by async key reads and stricter assertions.
-7. [x] Run diagnostics, builds, and tests for frontend and backend.
-8. [x] Run final review/Oracle pass before completion and fix the Gemini abort-signal blocker it found.
+1. [x] Read `pr-fix-suggestions.md` and target files.
+2. [x] Launch parallel explore validations for frontend/backend PR items.
+3. [x] Patch still-unfixed actionable PR items.
+4. [x] Collect explore results and reconcile any missed items.
+5. [x] Run diagnostics, builds, tests, and targeted line-ending/status checks.
 
 ## Verification plan
-- [x] `lsp_diagnostics` on all modified source/test files after final Oracle fix: 0 diagnostics.
-- [x] Root `npm run build` after final Oracle fix: passed.
-- [x] Root `npm run test` after final Oracle fix: 2 frontend files / 4 tests passed; server suite also passed via root script.
-- [x] Server `npm run build` after final Oracle fix: passed.
-- [x] Server `npm run test` after final Oracle fix: 7 files / 48 tests passed.
-- [x] Inspect git status for remaining tracked secrets and unexpected files: `server/.env` and `server/db.json` are deleted from the working tree and ignored for future runtime copies.
+- [x] `lsp_diagnostics` for repo and server: 0 diagnostics.
+- [x] `npm run build` at repo root: passed.
+- [x] `npm run test` at repo root: 2 frontend files / 4 tests passed; server suite also passed.
+- [x] `npm run build` in `server/`: passed.
+- [x] `npm run test` in `server/`: 7 files / 50 tests passed.
+- [x] Verify `install_and_run.bat` uses CRLF: passed via byte check.
+- [x] Verify no remaining actionable PR-list grep hits for fixed symbols: only remaining `global.fetch =` hit is unrelated `server/proxy.test.ts`, not SettingsPanel item #17.

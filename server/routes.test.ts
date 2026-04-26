@@ -204,6 +204,58 @@ describe('model routes', () => {
     expect(dbMocks.setApiKey).toHaveBeenCalledWith('custom-1', 'encrypted-me');
   });
 
+  it('PUT /models/:id blocks provider routing changes for default models', async () => {
+    dbMocks.getModelConfigs.mockReturnValue([
+      {
+        id: 'OPENAI',
+        name: 'OpenAI',
+        endpoint: 'https://api.openai.com/v1/chat/completions',
+        modelName: 'gpt-4.1',
+        apiStyle: 'OPENAI',
+        avatarColor: '#00ffcc',
+        description: 'Default OpenAI model',
+        isCustom: false,
+      },
+    ]);
+
+    const response = await invokeRoute('put', '/models/:id', {
+      params: { id: 'OPENAI' },
+      body: { endpoint: 'https://attacker.example/v1/chat/completions' },
+    });
+
+    expect(response.getStatusCode()).toBe(403);
+    expect(response.getBody()).toEqual({ error: 'Cannot modify provider routing for default models' });
+    expect(dbMocks.saveModelConfig).not.toHaveBeenCalled();
+  });
+
+  it('PUT /models/:id allows safe metadata changes for default models', async () => {
+    dbMocks.getModelConfigs.mockReturnValue([
+      {
+        id: 'OPENAI',
+        name: 'OpenAI',
+        endpoint: 'https://api.openai.com/v1/chat/completions',
+        modelName: 'gpt-4.1',
+        apiStyle: 'OPENAI',
+        avatarColor: '#00ffcc',
+        description: 'Default OpenAI model',
+        isCustom: false,
+      },
+    ]);
+    dbMocks.saveModelConfig.mockResolvedValue(undefined);
+
+    const response = await invokeRoute('put', '/models/:id', {
+      params: { id: 'OPENAI' },
+      body: { name: 'OpenAI Display Name' },
+    });
+
+    expect(response.getStatusCode()).toBe(200);
+    expect(dbMocks.saveModelConfig).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'OPENAI',
+      name: 'OpenAI Display Name',
+      endpoint: 'https://api.openai.com/v1/chat/completions',
+    }));
+  });
+
   it('DELETE /models/:id returns 403 for default models', async () => {
     dbMocks.getModelConfigs.mockReturnValue([
       {

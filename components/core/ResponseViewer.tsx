@@ -5,6 +5,7 @@ import { DEFAULT_MODELS } from "../../config";
 import {
 	type AppAction,
 	type ConsensusResult,
+	ConsensusStatus,
 	type ModelConfig,
 	type ModelResponse,
 	ModelStatus,
@@ -271,7 +272,7 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 							</div>
 							<div className="bg-black/60 border border-cyber-neon/30 p-4 md:p-6 rounded shadow-[0_0_30px_rgba(0,243,255,0.05)] min-h-[200px] max-w-full overflow-x-hidden">
 								{debouncedContent ? (
-									renderContent(debouncedContent, consensus.status as string === 'SYNTHESIZING')
+									renderContent(debouncedContent, consensus.status === ConsensusStatus.SYNTHESIZING)
 								) : (
 									<div className="flex flex-col items-center justify-center h-32 opacity-50">
 										<Cpu

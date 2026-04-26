@@ -32,9 +32,10 @@ describe('db', () => {
     const dbModule = await loadDbModule(dbPath);
 
     await dbModule.initDb();
-    await dbModule.setApiKey('OPENAI', 'hello');
+    const plaintext = 'cafe1234';
+    await dbModule.setApiKey('OPENAI', plaintext);
 
-    await expect(dbModule.getApiKey('OPENAI')).resolves.toBe('hello');
+    await expect(dbModule.getApiKey('OPENAI')).resolves.toBe(plaintext);
 
     const rawDb = JSON.parse(await readFile(dbPath, 'utf8')) as {
       keys: Record<string, { ciphertext: string; iv: string; tag: string; salt: string }>;
@@ -46,7 +47,8 @@ describe('db', () => {
       tag: expect.any(String),
       salt: expect.any(String),
     });
-    expect(rawDb.keys.OPENAI.ciphertext).not.toContain('hello');
+    expect(rawDb.keys.OPENAI.ciphertext).not.toContain(plaintext);
+    expect(Buffer.from(rawDb.keys.OPENAI.ciphertext, 'hex').includes(Buffer.from(plaintext))).toBe(false);
   });
 
   it('initDb creates db file and seeds seven default models', async () => {

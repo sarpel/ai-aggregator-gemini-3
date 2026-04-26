@@ -66,7 +66,7 @@ function getMasterKey(): string {
   throw new Error('ENCRYPTION_KEY environment variable is required. Set it before starting the server.');
 }
 
-async function ensureEncryptionKey(): Promise<string> {
+async function ensureEncryptionKey(hasExistingEncryptedData: boolean): Promise<string> {
   const existing = process.env.ENCRYPTION_KEY;
   if (existing) return existing;
 
@@ -84,6 +84,24 @@ async function ensureEncryptionKey(): Promise<string> {
     }
   } catch {
     // .env doesn't exist yet, will create below
+  }
+
+  // If there are existing encrypted keys in the DB but no encryption key available,
+  // generating a new key would make those keys undecryptable — fail loudly instead.
+  if (hasExistingEncryptedData) {
+    throw new Error(
+      'ENCRYPTION_KEY is not set, but the database contains encrypted API keys. ' +
+      'Set the ENCRYPTION_KEY environment variable to the original key used to encrypt these values. ' +
+      'Generating a new key would make existing encrypted data unrecoverable.',
+    );
+  }
+
+  // Gate automatic key generation behind an explicit opt-in flag
+  if (!process.env.ALLOW_AUTO_KEY_GEN) {
+    throw new Error(
+      'ENCRYPTION_KEY is not set and no existing key was found. ' +
+      'Set ALLOW_AUTO_KEY_GEN=1 to allow automatic key generation, or set ENCRYPTION_KEY explicitly.',
+    );
   }
 
   // Acquire lock with retries
@@ -121,6 +139,11 @@ async function ensureEncryptionKey(): Promise<string> {
 
     // Generate and persist a new key via temp file for atomic replace
     const newKey = randomBytes(32).toString('hex');
+    console.warn(
+      `[ensureEncryptionKey] Auto-generating new encryption key (ALLOW_AUTO_KEY_GEN=1). ` +
+      `Key will be persisted to ${envPath}. ` +
+      `Key fingerprint: ${newKey.slice(0, 4)}...${newKey.slice(-4)}`,
+    );
     const line = `ENCRYPTION_KEY=${newKey}\n`;
     const tmpPath = envPath + '.tmp';
 
@@ -215,11 +238,17 @@ async function decrypt(enc: EncryptedKey): Promise<string> {
 }
 
 export async function initDb(): Promise<void> {
+  // Read DB first to check for existing encrypted data before generating keys
   const dbPath = getDbPath();
   await mkdir(dirname(dbPath), { recursive: true });
   const adapter = new JSONFile<DbSchema>(dbPath);
   db = new Low<DbSchema>(adapter, { models: [], keys: {} });
   await db.read();
+
+  // Ensure encryption key is available BEFORE any DB write operations.
+  // Checks for existing encrypted data to prevent accidental key regeneration.
+  const hasExistingEncryptedData = Object.keys(db.data.keys ?? {}).length > 0;
+  await ensureEncryptionKey(hasExistingEncryptedData);
 
   if (db.data.models.length === 0) {
     db.data.models = DEFAULT_MODELS.map(cloneModelConfig);
@@ -238,8 +267,6 @@ export async function initDb(): Promise<void> {
       await persistDb(db);
     }
   }
-
-  await ensureEncryptionKey();
 }
 
 export function getModelConfigs(): ModelConfigStored[] {

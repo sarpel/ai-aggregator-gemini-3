@@ -65,7 +65,7 @@ export const DEFAULT_MODELS: ModelConfig[] = [
     "description": "Minimax 2.7",
     "apiStyle": "OPENAI",
     "endpoint": "https://api.minimax.io/v1/chat/completions",
-    "modelName": "Minimax-2.7",
+    "modelName": "MiniMax-M2.7",
     "isCustom": false,
     "isSimulated": false
   },
@@ -77,7 +77,7 @@ export const DEFAULT_MODELS: ModelConfig[] = [
     "description": "Alibaba Qwen 3.6 Plus",
     "apiStyle": "OPENAI",
     "endpoint": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions",
-    "modelName": "Qwen-3.6 Plus",
+    "modelName": "qwen3.6-plus",
     "isCustom": false,
     "isSimulated": false
   },

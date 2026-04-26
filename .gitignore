@@ -28,6 +28,11 @@ dist-ssr
 
 # Test-generated artifacts (do not ignore test source files)
 coverage/
+
+# Environment files with secrets
+.env
+server/.env
+server/.env.lock
 .nyc_output/
 *.lcov
 .cache/
@@ -37,3 +42,5 @@ server/db.json
 
 # Server environment secrets
 server/.env
+bun.lock
+zai.sh

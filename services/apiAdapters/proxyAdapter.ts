@@ -90,6 +90,7 @@ export const streamViaProxy = async (params: ProxyStreamParams): Promise<void> =
   };
 
   let hasCompleted = false;
+  let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
 
   try {
     console.log(`[PROXY/${params.modelId}] Sending ${params.apiStyle} stream request...`);
@@ -114,7 +115,7 @@ export const streamViaProxy = async (params: ProxyStreamParams): Promise<void> =
       return;
     }
 
-    const reader = response.body?.getReader();
+    reader = response.body?.getReader() ?? null;
     if (!reader) {
       params.onError('Proxy response did not include a readable stream');
       return;
@@ -190,8 +191,14 @@ export const streamViaProxy = async (params: ProxyStreamParams): Promise<void> =
       params.onError('Stream ended prematurely — no completion event received');
     }
   } catch (error) {
+    // Always clean up the reader on error to avoid leaked connections
+    if (reader) {
+      try { await reader.cancel(); } catch (_) { /* best-effort cleanup */ }
+    }
+
     if (error instanceof DOMException && error.name === 'AbortError') {
       console.log(`[PROXY/${params.modelId}] Stream aborted by user`);
+      params.onError('Request aborted');
       return;
     }
 

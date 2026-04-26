@@ -13,10 +13,15 @@ app.post('/test', (req: any, res: any) => {
   }, 50);
 });
 const srv = app.listen(9997, async () => {
-  const r = await fetch('http://localhost:9997/test', {
-    method:'POST', headers:{'Content-Type':'application/json'}, body: '{"a":1}'
-  });
-  const text = await r.text();
-  console.log('Client got body len:', text.length, '| content:', JSON.stringify(text));
-  srv.close();
+  try {
+    const r = await fetch('http://localhost:9997/test', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: '{"a":1}'
+    });
+    const text = await r.text();
+    console.log('Client got body len:', text.length, '| content:', JSON.stringify(text));
+  } catch (err) {
+    console.error('socket_test fetch error:', err instanceof Error ? err.message : String(err));
+  } finally {
+    srv.close();
+  }
 });

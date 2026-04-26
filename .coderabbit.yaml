@@ -5,7 +5,7 @@
 
 language: "tr"
 early_access: false
-tone_instructions: "Blunt, technical, exhaustive. Turkish feedback, English config. Focus: functional bugs, runtime correctness, performance, data corruption, resource leaks. Provide: what's wrong, why it breaks, exact fix as code."
+tone_instructions: "Be blunt, thorough. Turkish feedback, English config. Focus: bugs, performance, correctness. Provide exact code fixes."
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Knowledge base

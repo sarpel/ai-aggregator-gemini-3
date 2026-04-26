@@ -224,7 +224,7 @@ export async function handleAnthropicProxy(
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify(upstreamBody),
-      signal: req.socket?.destroyed ? AbortSignal.abort() : controller.signal,
+      signal: (req.socket?.destroyed ?? false) ? AbortSignal.abort() : controller.signal,
     });
 
     clearTimeout(timeoutId);

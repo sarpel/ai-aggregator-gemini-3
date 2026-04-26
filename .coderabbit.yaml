@@ -1,0 +1,230 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# CodeRabbit Configuration — ai-aggregator-gemini-3
+# Exhaustive review on every push, no limits, no exceptions.
+
+language: "tr"
+early_access: false
+tone_instructions: "Be blunt, thorough. Turkish feedback, English config. Focus: bugs, performance, correctness. Provide exact code fixes."
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Knowledge base
+# ─────────────────────────────────────────────────────────────────────────────
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "**/AGENTS.md"
+      - "**/CLAUDE.md"
+      - "**/.cursorrules"
+  web_search:
+    enabled: true
+  learnings:
+    scope: auto
+  mcp:
+    usage: enabled
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Reviews — no limits, every push, every author, forever
+# ─────────────────────────────────────────────────────────────────────────────
+reviews:
+  profile: "assertive"
+  request_changes_workflow: false
+
+  # ── Walkthrough — stripped to essentials ───────────────────────────────────
+  high_level_summary: false
+  high_level_summary_in_walkthrough: false
+  review_status: true
+  review_details: true
+  commit_status: true
+  fail_commit_status: true
+  collapse_walkthrough: false
+  changed_files_summary: false
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+  assess_linked_issues: false
+  related_issues: false
+  related_prs: false
+  poem: false
+  in_progress_fortune: false
+
+  # ── Labels & reviewers ─────────────────────────────────────────────────────
+  suggested_labels: false
+  auto_apply_labels: false
+  suggested_reviewers: false
+  auto_assign_reviewers: false
+
+  # ── Auto-review — unlimited, always on, no author exclusions ────────────────
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 0
+    drafts: true
+    base_branches:
+      - ".*"
+    # No ignore_usernames — review bots and humans alike without hesitation
+    # No ignore_title_keywords — review every PR regardless of title
+    labels: []
+    description_keyword: ""
+
+  # ── Path filters — only skip generated/binary artefacts ────────────────────
+  path_filters:
+    - "!data/processed/**" # mmap spectrogram features (generated)
+    - "!models/checkpoints/**" # weight artefacts & logs (generated)
+    - "!dataset/**" # raw audio data
+    - "!**/*.pyc"
+    - "!**/__pycache__/**"
+    - "!**/*.egg-info/**"
+    - "!**/.mypy_cache/**"
+    - "!**/.pytest_cache/**"
+
+  # ── Path-specific review instructions ──────────────────────────────────────
+  path_instructions:
+    # ── TypeScript & TSX: application correctness ───────────────────────────
+    - path: "**/*.ts"
+      instructions: |
+        Write ALL review comments, walkthroughs, and inline feedback in Turkish.
+        Keep config-level instructions (this file) in English. Be blunt,
+        thorough, and technically exhaustive. Skip pleasantries, summaries,
+        poems, cosmetic nitpicks. Focus ONLY on: functional bugs, runtime
+        correctness, performance bottlenecks, data corruption risks, resource
+        leaks, and algorithmic errors. For every finding, provide: (1) what is
+        wrong, (2) why it breaks or slows things, (3) the exact fix as code.
+        Teach — explain the reasoning so the author learns. If nothing is wrong,
+        stay silent. No filler, no fluff.
+
+    - path: "**/*.tsx"
+      instructions: |
+        Write ALL review comments, walkthroughs, and inline feedback in Turkish.
+        Keep config-level instructions (this file) in English. Be blunt,
+        thorough, and technically exhaustive. Skip pleasantries, summaries,
+        poems, cosmetic nitpicks. Focus ONLY on: functional bugs, runtime
+        correctness, performance bottlenecks, data corruption risks, resource
+        leaks, and algorithmic errors. For every finding, provide: (1) what is
+        wrong, (2) why it breaks or slows things, (3) the exact fix as code.
+        Teach — explain the reasoning so the author learns. If nothing is wrong,
+        stay silent. No filler, no fluff.
+
+    # ── CLI & operational scripts ────────────────────────────────────────────
+    - path: "scripts/**/*.py"
+      instructions: |
+        Operational CLI scripts. Review for:
+        - Correct argparse setup with sensible defaults and required args marked.
+        - Proper exit codes (0 = success, non-zero = failure).
+        - File I/O: pathlib over os.path, correct encoding, context managers.
+        - Subprocess calls: never shell=True with user input; check return codes.
+        - No hardcoded paths — assume repo-root-relative or CLI-provided paths.
+        - Defensive validation of inputs before passing to training/inference.
+
+    # ── Shell wrappers ──────────────────────────────────────────────────────
+    - path: "*.sh"
+      instructions: |
+        Shell wrappers that set PYTHONPATH and invoke scripts. Review for:
+        - set -euo pipefail at the top.
+        - Correct repo-root-relative paths.
+        - Proper quoting of variables ("$VAR" not $VAR).
+        - No use of deprecated or unsafe shell constructs.
+
+    # ── Training & YAML configuration ───────────────────────────────────────
+    - path: "**/*.yaml"
+      instructions: |
+        YAML configuration files for training and feature generation. Verify:
+        - All referenced paths exist or are documented as user-provided.
+        - Numeric values have sensible ranges (learning rates 1e-5 to 1e-2, batch
+          sizes power-of-2, etc.).
+        - No contradictory settings (e.g., mixed_precision: true with incompatible
+          optimizer).
+        - Dataset split names match what the training data loader expects.
+
+    # ── Tests ───────────────────────────────────────────────────────────────
+    - path: "**/test*.py"
+      instructions: |
+        Test files. Verify:
+        - Tests are isolated — no shared mutable state between test functions.
+        - Proper use of fixtures and mocks; no mocking what should be integration-tested.
+        - Edge cases: empty inputs, None values, zero-length sequences, dtype boundaries.
+        - Assertions are specific (check exact values/shapes, not just "is not None").
+
+    # ── Documentation & AGENTS.md ───────────────────────────────────────────
+    - path: "**/*.md"
+      instructions: |
+        Markdown documentation. Check for:
+        - References to commands, paths, and configs that still exist and are correct.
+        - No outdated instructions that contradict the current code.
+        - Internal links point to valid files/sections.
+
+  # ── Pre-merge checks — hardcore only ──────────────────────────────────────
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+    title:
+      mode: "off"
+    description:
+      mode: "off"
+    issue_assessment:
+      mode: "off"
+    custom_checks:
+      - name: "No hardcoded secrets"
+        mode: "error"
+        instructions: >-
+          Fail if any changed file contains hardcoded API keys, passwords,
+          tokens, or credentials matching patterns: sk_live_*, AKIA[A-Z0-9]{16},
+          ghp_[a-zA-Z0-9]{36}, or variables named *_SECRET, *_KEY, *_PASSWORD,
+          *_TOKEN with a literal string value (not an env var reference).
+          Exclude test fixtures and example config files.
+
+      - name: "Spectrogram dtype safety"
+        mode: "error"
+        instructions: >-
+          Fail if any Python file reads spectrogram data from mmap/npz/npy and
+          converts to float32 WITHOUT going through prepare_spectrogram() or an
+          equivalent explicit scale normalization. Ad-hoc .astype(np.float32) on
+          uint16 spectrogram arrays is a bug. Exclude test files that mock the
+          function.
+
+      - name: "TF data pipeline ordering"
+        mode: "error"
+        instructions: >-
+          Fail if a tf.data pipeline applies .batch() before .shuffle() or
+          .unbatch(), or uses .shuffle() with a buffer_size smaller than the
+          dataset size without justification, or lacks .prefetch() on a hot
+          training pipeline. The correct order for combined datasets is:
+          sample_from_datasets → unbatch → shuffle → rebatch → prefetch.
+
+      - name: "Loss shape & reduction"
+        mode: "warning"
+        instructions: >-
+          Flag any loss computation where the loss tensor shape or reduction
+          mode could produce incorrect gradients: e.g., class_weights applied to
+          wrong axis, reduction='sum' used where 'mean' is needed, or a scalar
+          loss produced from a still-batched tensor without explicit reduction.
+
+      - name: "Resource cleanup in effects"
+        mode: "warning"
+        instructions: >-
+          Flag any tf.data or training callback that opens resources (files,
+          mmap arrays, GPU memory) without corresponding cleanup in a finally
+          block, context manager, or callback.on_train_end hook.
+
+      - name: "Mutable default arguments"
+        mode: "error"
+        instructions: >-
+          Fail if any Python function or method uses a mutable object (list,
+          dict, set, np.ndarray) as a default argument value. Example: def
+          foo(items=[]). This is a classic Python bug. Use None and initialise
+          inside the function body instead.
+
+      - name: "Breaking changes documented"
+        mode: "warning"
+        instructions: >-
+          Pass/fail criteria: If the PR changes public APIs in microwakeword/,
+          CLI flags in scripts/, config keys in YAML files, or database schemas,
+          the PR description must contain a Breaking Changes section and
+          CHANGELOG.md must be updated. Exclude purely internal changes to
+          private functions.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Chat
+# ─────────────────────────────────────────────────────────────────────────────
+chat:
+  auto_reply: true

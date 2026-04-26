@@ -14,8 +14,8 @@ interface ModelAvatarProps {
 // --- Brand SVGs ---
 
 export const GeminiLogo = ({ color }: { color: string }) => (
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full p-1">
-    <path d="M12 2L14.1 8.9C14.5 10.2 15.5 11.2 16.9 11.6L22 12L16.9 12.4C15.5 12.8 14.5 13.8 14.1 15.1L12 22L9.9 15.1C9.5 13.8 8.5 12.8 7.1 12.4L2 12L7.1 11.6C8.5 11.2 9.5 10.2 9.9 8.9L12 2Z" fill={color} stroke={color} strokeWidth="0.5"/>
+  <svg viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg" className="w-full h-full p-1">
+    <path d="M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81" />
   </svg>
 );
 
@@ -27,21 +27,14 @@ export const OpenAILogo = ({ color }: { color: string }) => (
 
 export const AnthropicLogo = ({ color }: { color: string }) => (
   <svg viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg" className="w-full h-full p-1">
-     <path d="M17.2 19.2H21L12 3.6 3 19.2h3.8l1.8-3.6h6.8l1.8 3.6zm-7.1-6.3L12 9.4l1.9 3.5h-3.8z"/>
+    <path d="M17.3041 3.541h-3.6718l6.696 16.918H24Zm-10.6082 0L0 20.459h3.7442l1.3693-3.5527h7.0052l1.3693 3.5528h3.7442L10.5363 3.5409Zm-.3712 10.2232 2.2914-5.9456 2.2914 5.9456Z" />
   </svg>
 );
 
-export const GrokLogo = ({ color }: { color: string }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" xmlns="http://www.w3.org/2000/svg" className="w-full h-full p-1">
-    <path d="M18 6L6 18M6 6l12 12" />
-    <rect x="2" y="2" width="20" height="20" rx="4" strokeWidth="1.5" />
-  </svg>
-);
-
-export const DeepSeekLogo = ({ color }: { color: string }) => (
-  <svg viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg" className="w-full h-full p-1">
-    <path d="M21.5 12c0 5.2-4.3 9.5-9.5 9.5S2.5 17.2 2.5 12 6.8 2.5 12 2.5c1.5 0 3 .3 4.3.9l-1.6 2.8C13.8 5.6 12.9 5.5 12 5.5c-3.6 0-6.5 2.9-6.5 6.5s2.9 6.5 6.5 6.5 6.5-2.9 6.5-6.5c0-.5-.1-1-.2-1.5l2.9-1c.2.8.3 1.6.3 2.5z" />
-    <circle cx="15" cy="9" r="1.5" />
+export const ZaiLogo = ({ color }: { color: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full p-1">
+    <rect x="2" y="2" width="20" height="20" rx="4" stroke={color} strokeWidth="1.5" />
+    <path d="M8 7h8l-6 10h6" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -51,8 +44,7 @@ export const ModelLogo = ({ providerId, color, mini }: { providerId?: string, co
       case 'GEMINI': return <GeminiLogo color={color} />;
       case 'OPENAI': return <OpenAILogo color={color} />;
       case 'ANTHROPIC': return <AnthropicLogo color={color} />;
-      case 'GROK': return <GrokLogo color={color} />;
-      case 'DEEPSEEK': return <DeepSeekLogo color={color} />;
+      case 'ZAI': return <ZaiLogo color={color} />;
       default: return <Cpu size={size} style={{ color }} />;
     }
 };
@@ -72,12 +64,12 @@ const ModelAvatar: React.FC<ModelAvatarProps> = ({ providerId, name, color, stat
   };
 
   const sizeClass = mini ? 'w-10 h-10' : 'w-14 h-14';
-  const glowStyle = status === ModelStatus.STREAMING 
-    ? { boxShadow: `0 0 15px ${color}` } 
+  const glowStyle = status === ModelStatus.STREAMING
+    ? { boxShadow: `0 0 15px ${color}` }
     : { borderColor: status === ModelStatus.IDLE ? '#333' : color };
 
   const isStreaming = status === ModelStatus.STREAMING;
-  
+
   // Dimensions for the progress ring (SVG)
   const ringRadius = mini ? 28 : 38;
   const ringCircumference = 2 * Math.PI * ringRadius;
@@ -88,26 +80,26 @@ const ModelAvatar: React.FC<ModelAvatarProps> = ({ providerId, name, color, stat
       {/* Streaming Progress & Activity Ring */}
       {isStreaming && (
         <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none">
-            <svg 
-              width={mini ? 80 : 100} 
-              height={mini ? 80 : 100} 
-              viewBox="0 0 100 100" 
+            <svg
+              width={mini ? 80 : 100}
+              height={mini ? 80 : 100}
+              viewBox="0 0 100 100"
               className="overflow-visible -rotate-90"
             >
-              <circle 
-                cx="50" cy="50" r={ringRadius - 5} 
+              <circle
+                cx="50" cy="50" r={ringRadius - 5}
                 stroke={color} strokeWidth="1" fill="none" strokeOpacity="0.3"
                 strokeDasharray="4 6"
                 className="animate-[spin_4s_linear_infinite] origin-center"
               />
-              <circle 
-                cx="50" cy="50" r={ringRadius} 
+              <circle
+                cx="50" cy="50" r={ringRadius}
                 stroke={color} strokeWidth="1.5" fill="none" strokeOpacity="0.1"
               />
-              <circle 
-                cx="50" cy="50" r={ringRadius} 
+              <circle
+                cx="50" cy="50" r={ringRadius}
                 stroke={color} strokeWidth="2" fill="none"
-                style={{ 
+                style={{
                   strokeDasharray: ringCircumference,
                   strokeDashoffset: progressOffset
                 }}
@@ -118,7 +110,7 @@ const ModelAvatar: React.FC<ModelAvatarProps> = ({ providerId, name, color, stat
         </div>
       )}
 
-      <div 
+      <div
         className={`${sizeClass} rounded-sm border-2 bg-black flex items-center justify-center transition-all duration-300 relative overflow-hidden z-10`}
         style={glowStyle}
       >
@@ -126,7 +118,7 @@ const ModelAvatar: React.FC<ModelAvatarProps> = ({ providerId, name, color, stat
         <div className="w-3/4 h-3/4 flex items-center justify-center opacity-90 z-10">
           <ModelLogo providerId={providerId} color={color} mini={mini} />
         </div>
-        
+
         {/* Background Pulse for Active State */}
         {status === ModelStatus.STREAMING && (
              <div className="absolute inset-0 bg-current opacity-10 animate-pulse" style={{ color }}></div>
@@ -135,7 +127,7 @@ const ModelAvatar: React.FC<ModelAvatarProps> = ({ providerId, name, color, stat
 
       {/* Status Indicator Overlay */}
       {status !== ModelStatus.IDLE && (
-        <div 
+        <div
             className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border border-black bg-black flex items-center justify-center z-20 shadow-sm`}
         >
             {getStatusIcon()}

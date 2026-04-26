@@ -1,16 +1,25 @@
-
-import { ModelConfig, ModelProvider, ModelStatus } from './types';
 import { config } from './config';
-
-export const AVAILABLE_MODELS: ModelConfig[] = config.models.map(m => ({
-  ...m,
-  id: m.id as ModelProvider // Ensure strict typing match
-}));
+import { ModelStatus, type ModelConfig, type ModelResponse } from './types';
 
 export const APP_TIMEOUTS = config.appSettings;
 
-export const INITIAL_RESPONSE_STATE = (provider: ModelProvider) => ({
-  provider,
+type IncompleteModelConfig = Omit<ModelConfig, 'provider'> & { provider?: string };
+
+export const normalizeModelConfig = (modelConfig: IncompleteModelConfig): ModelConfig => ({
+  ...modelConfig,
+  provider: modelConfig.provider ?? (modelConfig.isCustom ? 'CUSTOM' : modelConfig.id),
+});
+
+export const normalizeModelConfigs = (modelConfigs: IncompleteModelConfig[]): ModelConfig[] => (
+  modelConfigs.map(normalizeModelConfig)
+);
+
+export const getAvailableModels = (modelConfigs: IncompleteModelConfig[]): ModelConfig[] =>
+  normalizeModelConfigs(modelConfigs.filter((m) => m.enabled !== false));
+
+
+export const INITIAL_RESPONSE_STATE = (modelId: string): ModelResponse => ({
+  provider: modelId,
   status: ModelStatus.IDLE,
   text: '',
   latency: 0,

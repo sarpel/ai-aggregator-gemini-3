@@ -1,11 +1,5 @@
+export type ModelProviderId = string;
 
-export enum ModelProvider {
-  GEMINI = 'GEMINI',
-  OPENAI = 'OPENAI', 
-  ANTHROPIC = 'ANTHROPIC', 
-  GROK = 'GROK', 
-  DEEPSEEK = 'DEEPSEEK'
-}
 
 export enum ModelStatus {
   IDLE = 'IDLE',
@@ -18,8 +12,8 @@ export enum ModelStatus {
 
 export enum ConsensusStatus {
   IDLE = 'IDLE',
-  ANALYZING = 'ANALYZING', 
-  SYNTHESIZING = 'SYNTHESIZING', 
+  ANALYZING = 'ANALYZING',
+  SYNTHESIZING = 'SYNTHESIZING',
   COMPLETED = 'COMPLETED',
   ERROR = 'ERROR',
   TIMEOUT = 'TIMEOUT'
@@ -31,24 +25,25 @@ export enum SynthesizerMode {
 
 export interface SynthesizerConfig {
   mode: SynthesizerMode;
-  provider: 'GEMINI' | 'CUSTOM';
-  customEndpoint?: string;
-  customModelName?: string;
-  customApiKey?: string;
-  customApiStyle?: 'OPENAI' | 'ANTHROPIC';
-  systemInstruction: string;
+  modelId: string;
+  systemPrompt: string;
 }
 
+export type ApiStyle = 'OPENAI' | 'ANTHROPIC' | 'GEMINI';
+
 export interface ModelConfig {
-  id: ModelProvider;
+  id: string;
   name: string;
   avatarColor: string;
   description: string;
   provider: string;
-  apiStyle: string;
+  apiStyle: ApiStyle;
   modelName: string;
-  endpoint?: string;
+  endpoint: string;
+  apiKey?: string;
+  isCustom: boolean;
   isSimulated: boolean;
+  enabled?: boolean;
 }
 
 export interface ChatMessage {
@@ -58,7 +53,7 @@ export interface ChatMessage {
 }
 
 export interface ModelResponse {
-  provider: ModelProvider;
+  provider: ModelProviderId;
   status: ModelStatus;
   text: string;
   error?: string;
@@ -71,28 +66,51 @@ export interface ConsensusResult {
   status: ConsensusStatus;
   text: string;
   confidence: number;
-  contributors: { provider: ModelProvider; weight: number }[];
+  contributors: { provider: ModelProviderId; weight: number }[];
 }
 
 export interface AppState {
-  apiKeyMap: Record<ModelProvider, string>;
-  activeModels: ModelProvider[];
+  activeModels: string[];
   currentPrompt: string;
   isProcessing: boolean;
-  modelResponses: Record<ModelProvider, ModelResponse>;
+  responses: Record<string, ModelResponse>;
   consensus: ConsensusResult;
   synthesizerConfig: SynthesizerConfig;
+  modelConfigs: ModelConfig[];
+  configLoaded: boolean;
   history: { prompt: string; consensus: string; timestamp: number }[];
 }
 
 export type AppAction =
-  | { type: 'SET_API_KEY'; payload: { provider: ModelProvider; key: string } }
-  | { type: 'TOGGLE_MODEL'; payload: ModelProvider }
+  | { type: 'SET_MODEL_CONFIGS'; configs: ModelConfig[] }
+  | { type: 'ADD_MODEL_CONFIG'; config: ModelConfig }
+  | { type: 'UPDATE_MODEL_CONFIG'; id: string; updates: Partial<ModelConfig> }
+  | { type: 'REMOVE_MODEL_CONFIG'; id: string }
+  | { type: 'TOGGLE_MODEL'; modelId: string }
   | { type: 'START_REQUEST'; payload: string }
-  | { type: 'RETRY_REQUEST'; payload: ModelProvider }
-  | { type: 'UPDATE_RESPONSE'; payload: { provider: ModelProvider; data: Partial<ModelResponse> } }
+  | { type: 'RETRY_REQUEST'; modelId: string }
+  | { type: 'UPDATE_RESPONSE'; modelId: string; data: Partial<ModelResponse> }
   | { type: 'UPDATE_CONSENSUS'; payload: Partial<ConsensusResult> }
   | { type: 'SET_SYNTHESIZER_CONFIG'; payload: Partial<SynthesizerConfig> }
   | { type: 'RESET_SESSION'; }
   | { type: 'CLEAR_OUTPUTS'; }
   | { type: 'ADD_HISTORY'; payload: { prompt: string; consensus: string } };
+
+export interface ProxyStreamRequest {
+  modelId: string;
+  endpoint: string;
+  modelName: string;
+  apiStyle: ApiStyle;
+  messages: ChatMessage[];
+  systemPrompt?: string;
+}
+
+export interface ModelConfigCreateDTO {
+  name: string;
+  endpoint: string;
+  modelName: string;
+  apiStyle: ApiStyle;
+  apiKey: string;
+  avatarColor?: string;
+  description?: string;
+}

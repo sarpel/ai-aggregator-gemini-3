@@ -1,63 +1,96 @@
 
+import type { ModelConfig } from './types';
+
 export const config = {
   "appSettings": {
     "connectionTimeoutMs": 60000,
     "generationTimeoutMs": 60000
-  },
-  "models": [
-    {
-      "id": "GEMINI",
-      "name": "Gemini 2.5 Flash",
-      "provider": "GEMINI",
-      "avatarColor": "#00f3ff",
-      "description": "Google Multimodal Fast",
-      "apiStyle": "GEMINI",
-      "modelName": "gemini-2.5-flash",
-      "isSimulated": false
-    },
-    {
-      "id": "OPENAI",
-      "name": "GPT-4o",
-      "provider": "OPENAI",
-      "avatarColor": "#10a37f",
-      "description": "OpenAI Omni",
-      "apiStyle": "OPENAI",
-      "endpoint": "https://api.openai.com/v1/chat/completions",
-      "modelName": "gpt-4o",
-      "isSimulated": false
-    },
-    {
-      "id": "ANTHROPIC",
-      "name": "Claude 3.5 Sonnet",
-      "provider": "ANTHROPIC",
-      "avatarColor": "#d97757",
-      "description": "Anthropic New Sonnet",
-      "apiStyle": "ANTHROPIC",
-      "endpoint": "https://api.anthropic.com/v1/messages",
-      "modelName": "claude-3-5-sonnet-20241022",
-      "isSimulated": false
-    },
-    {
-      "id": "GROK",
-      "name": "Grok 2",
-      "provider": "GROK",
-      "avatarColor": "#fff",
-      "description": "xAI Grok 2",
-      "apiStyle": "OPENAI",
-      "endpoint": "https://api.x.ai/v1/chat/completions",
-      "modelName": "grok-2-latest",
-      "isSimulated": false
-    },
-    {
-      "id": "DEEPSEEK",
-      "name": "DeepSeek V3",
-      "provider": "DEEPSEEK",
-      "avatarColor": "#4e61e6",
-      "description": "DeepSeek Chat V3",
-      "apiStyle": "OPENAI",
-      "endpoint": "https://api.deepseek.com/chat/completions",
-      "modelName": "deepseek-chat",
-      "isSimulated": false
-    }
-  ]
+  }
 };
+
+export const DEFAULT_MODELS: ModelConfig[] = [
+  {
+    "id": "GEMINI",
+    "name": "gemini-3-pro-preview",
+    "provider": "GEMINI",
+    "avatarColor": "#00f3ff",
+    "description": "Google Gemini 3 Pro Preview",
+    "apiStyle": "GEMINI",
+    "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-preview:streamGenerateContent",
+    "modelName": "gemini-3-pro-preview",
+    "isCustom": false,
+    "isSimulated": false
+  },
+  {
+    "id": "OPENAI",
+    "name": "GPT-5.4",
+    "provider": "OPENAI",
+    "avatarColor": "#10a37f",
+    "description": "OpenAI GPT-5.4",
+    "apiStyle": "OPENAI",
+    "endpoint": "https://api.openai.com/v1/chat/completions",
+    "modelName": "gpt-5.4",
+    "isCustom": false,
+    "isSimulated": false
+  },
+  {
+    "id": "ANTHROPIC",
+    "name": "claude-sonnet-4.6",
+    "provider": "ANTHROPIC",
+    "avatarColor": "#d97757",
+    "description": "Anthropic Sonnet 4.6",
+    "apiStyle": "ANTHROPIC",
+    "endpoint": "https://api.anthropic.com/v1/messages",
+    "modelName": "claude-sonnet-4.6",
+    "isCustom": false,
+    "isSimulated": false
+  },
+  {
+    "id": "ZAI",
+    "name": "glm-5.1",
+    "provider": "ZAI",
+    "avatarColor": "#fff",
+    "description": "Z.AI GLM 5.1",
+    "apiStyle": "OPENAI",
+    "endpoint": "https://api.z.ai/api/coding/paas/v4/chat/completions",
+    "modelName": "glm-5.1",
+    "isCustom": true,
+    "isSimulated": false
+  },
+  {
+    "id": "MINIMAX",
+    "name": "Minimax-2.7",
+    "provider": "MINIMAX",
+    "avatarColor": "#ff6b35",
+    "description": "Minimax 2.7",
+    "apiStyle": "OPENAI",
+    "endpoint": "https://api.minimax.io/v1/chat/completions",
+    "modelName": "MiniMax-M2.7",
+    "isCustom": false,
+    "isSimulated": false
+  },
+  {
+    "id": "QWEN",
+    "name": "Qwen-3.6 Plus",
+    "provider": "QWEN",
+    "avatarColor": "#6e40c9",
+    "description": "Alibaba Qwen 3.6 Plus",
+    "apiStyle": "OPENAI",
+    "endpoint": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions",
+    "modelName": "qwen3.6-plus",
+    "isCustom": false,
+    "isSimulated": false
+  },
+  {
+    "id": "XAI",
+    "name": "Grok-4.20",
+    "provider": "XAI",
+    "avatarColor": "#e8e8e8",
+    "description": "xAI Grok 4.20 Reasoning",
+    "apiStyle": "OPENAI",
+    "endpoint": "https://api.x.ai/v1/chat/completions",
+    "modelName": "grok-4.20-reasoning-latest",
+    "isCustom": false,
+    "isSimulated": false
+  }
+];

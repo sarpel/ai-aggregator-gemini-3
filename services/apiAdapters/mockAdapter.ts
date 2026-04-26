@@ -1,5 +1,5 @@
 
-import { ModelResponse, ModelStatus, ModelProvider } from "../../types";
+import { ModelResponse, ModelStatus, ModelProviderId } from "../../types";
 
 const SIMULATED_RESPONSES = [
   "Based on my analysis of the vector space, I concur with the premise.",
@@ -10,7 +10,7 @@ const SIMULATED_RESPONSES = [
 ];
 
 export const streamMock = async (
-  provider: ModelProvider,
+  provider: ModelProviderId,
   prompt: string,
   onUpdate: (data: Partial<ModelResponse>) => void
 ) => {

@@ -106,13 +106,18 @@ const [copiedState, setCopiedState] = useState<string | null>(null);
 
 	// Debounced markdown content: during streaming, only re-render markdown every 150ms
 	// to avoid quadratic ReactMarkdown parse cost on each streaming chunk.
-	const [debouncedContent, setDebouncedContent] = useState<string>("");
+	// When not streaming or on tab switch, update immediately to avoid stale content leaking between tabs.
+	const [debouncedContent, setDebouncedContent] = useState<string>(currentContent);
 	useEffect(() => {
+		if (!isStreamingCurrentTab) {
+			setDebouncedContent(currentContent);
+			return;
+		}
 		const timer = setTimeout(() => {
 			setDebouncedContent(currentContent);
 		}, 150);
 		return () => clearTimeout(timer);
-	}, [currentContent]);
+	}, [currentContent, isStreamingCurrentTab, selectedTab]);
 
 	const renderContent = useCallback((content: string, streaming = false) => {
 		if (!content)
@@ -199,7 +204,7 @@ const [copiedState, setCopiedState] = useState<string | null>(null);
 									{isStreaming && (
 										<span className="w-1.5 h-1.5 bg-cyber-neon rounded-full animate-pulse ml-1"></span>
 									)}
-									<div 
+									<div
 										className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity hover:text-cyber-neon"
 										onClick={(e) => {
 											e.stopPropagation();

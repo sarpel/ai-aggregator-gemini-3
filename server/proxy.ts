@@ -125,7 +125,7 @@ export async function handleOpenAIProxy(
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(upstreamBody),
-      signal: socketDestroyed ? AbortSignal.abort() : controller.signal,
+      signal: (req.socket?.destroyed ?? false) ? AbortSignal.abort() : controller.signal,
     });
 
     clearTimeout(timeoutId);

@@ -12,6 +12,7 @@ app.post('/test', (req: any, res: any) => {
     res.end();
   }, 50);
 });
+
 const srv = app.listen(9997, async () => {
   try {
     const r = await fetch('http://localhost:9997/test', {

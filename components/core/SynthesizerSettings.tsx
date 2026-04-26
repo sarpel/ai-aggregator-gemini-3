@@ -38,7 +38,12 @@ const SynthesizerSettings: React.FC<SynthesizerSettingsProps> = ({ config, dispa
             <Cpu className="text-cyber-neon animate-pulse" />
             NEURAL CORE CONFIGURATION
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-cyber-red transition-colors">
+          <button
+            type="button"
+            aria-label="Close synthesizer settings"
+            onClick={onClose}
+            className="text-gray-500 hover:text-cyber-red transition-colors"
+          >
             <X size={24} />
           </button>
         </div>

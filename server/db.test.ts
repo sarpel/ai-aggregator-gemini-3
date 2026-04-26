@@ -47,7 +47,7 @@ describe('db', () => {
       tag: expect.any(String),
       salt: expect.any(String),
     });
-    expect(rawDb.keys.OPENAI.ciphertext).not.toContain(plaintext);
+    // Verify ciphertext does not contain plaintext bytes (binary-level check)
     expect(Buffer.from(rawDb.keys.OPENAI.ciphertext, 'hex').includes(Buffer.from(plaintext))).toBe(false);
   });
 

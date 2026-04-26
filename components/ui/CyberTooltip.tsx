@@ -13,7 +13,7 @@ const CyberTooltip: React.FC<CyberTooltipProps> = ({
   children, 
   position = 'top',
   className = '',
-  disabled = true
+  disabled = false
 }) => {
   if (disabled) {
     return <>{children}</>;

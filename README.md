@@ -69,7 +69,7 @@ npm install
 npm run dev
 ```
 
-The app will launch at `http://localhost:5173` (frontend) with backend proxy at `http://localhost:3001`.
+The app will launch at `http://localhost:3000` (frontend) with backend proxy at `http://localhost:3001`.
 
 ### Environment Variables
 
@@ -210,7 +210,7 @@ npx vitest run
 <!-- AUTO-GENERATED: scripts -->
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start Vite dev server (port 5173) |
+| `npm run dev` | Start Vite dev server (port 3000) |
 | `npm run build` | Build for production |
 | `npm run test` | Run Vitest tests |
 | `cd server && npm run dev` | Start backend (port 3001, auto-reload) |

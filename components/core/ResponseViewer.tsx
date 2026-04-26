@@ -80,14 +80,19 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 				await navigator.clipboard.writeText(text);
 			} else {
 				const textArea = document.createElement("textarea");
-				textArea.value = text;
-				textArea.setAttribute("readonly", "true");
-				textArea.style.position = "fixed";
-				textArea.style.left = "-9999px";
-				document.body.appendChild(textArea);
-				textArea.select();
-				document.execCommand("copy");
-				document.body.removeChild(textArea);
+				let success = false;
+				try {
+					textArea.value = text;
+					textArea.setAttribute("readonly", "true");
+					textArea.style.position = "fixed";
+					textArea.style.left = "-9999px";
+					document.body.appendChild(textArea);
+					textArea.select();
+					success = document.execCommand("copy");
+				} finally {
+					textArea.remove();
+				}
+				if (!success) return;
 			}
 			setCopiedState(selectedTab);
 			setTimeout(() => setCopiedState(null), 2000);

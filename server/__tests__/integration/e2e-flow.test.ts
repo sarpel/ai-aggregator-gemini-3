@@ -9,7 +9,6 @@ import {
   afterAll,
   afterEach,
   beforeAll,
-  beforeEach,
   describe,
   expect,
   it,
@@ -155,9 +154,10 @@ describe('e2e-flow integration', () => {
     });
 
     const addr = server.address();
-    if (addr && typeof addr === 'object') {
-      baseUrl = `http://127.0.0.1:${addr.port}`;
+    if (!addr || typeof addr === 'string') {
+      throw new Error(`server.address() returned unexpected value: ${String(addr)}`);
     }
+    baseUrl = `http://127.0.0.1:${addr.port}`;
   });
 
   afterAll(async () => {
@@ -325,11 +325,16 @@ describe('e2e-flow integration', () => {
     const modelId = createResult.data.id;
 
     // Set API key
-    await fetchJson(`${baseUrl}/api/models/${modelId}/key`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiKey: 'e2e-update-key' }),
-    });
+    const keyResult = await fetchJson<{ success: boolean }>(
+      `${baseUrl}/api/models/${modelId}/key`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: 'e2e-update-key' }),
+      },
+    );
+    expect(keyResult.status).toBe(200);
+    expect(keyResult.data.success).toBe(true);
 
     // Update endpoint to point to mock LLM
     const updateResult = await fetchJson<{ id: string; endpoint: string }>(

@@ -107,7 +107,7 @@ beforeEach(() => {
 
 describe('proxy handlers', () => {
   it('OpenAI proxy returns 400 when API key is missing', async () => {
-    getApiKeyMock.mockReturnValue(null);
+    getApiKeyMock.mockResolvedValue(null);
     const req = createMockReq();
     const res = createMockRes();
 
@@ -119,7 +119,7 @@ describe('proxy handlers', () => {
   });
 
   it('Anthropic proxy returns 400 when API key is missing', async () => {
-    getApiKeyMock.mockReturnValue(null);
+    getApiKeyMock.mockResolvedValue(null);
     const req = createMockReq();
     const res = createMockRes();
 
@@ -131,7 +131,7 @@ describe('proxy handlers', () => {
   });
 
   it('Gemini proxy returns 400 when API key is missing', async () => {
-    getApiKeyMock.mockReturnValue(null);
+    getApiKeyMock.mockResolvedValue(null);
     const req = createMockReq();
     const res = createMockRes();
 
@@ -143,7 +143,7 @@ describe('proxy handlers', () => {
   });
 
   it('OpenAI proxy builds correct upstream headers/body and pipes SSE verbatim', async () => {
-    getApiKeyMock.mockReturnValue('openai-key');
+    getApiKeyMock.mockResolvedValue('openai-key');
     getModelConfigsMock.mockReturnValue([{
       ...DEFAULT_MODEL_CONFIG,
       id: 'model-1',
@@ -185,7 +185,7 @@ describe('proxy handlers', () => {
   });
 
   it('OpenAI proxy keeps streaming when the request body side closes normally', async () => {
-    getApiKeyMock.mockReturnValue('openai-key');
+    getApiKeyMock.mockResolvedValue('openai-key');
     getModelConfigsMock.mockReturnValue([{
       ...DEFAULT_MODEL_CONFIG,
       id: 'model-1',
@@ -222,7 +222,7 @@ describe('proxy handlers', () => {
   });
 
   it('Anthropic proxy builds correct upstream headers/body and extracts system message', async () => {
-    getApiKeyMock.mockReturnValue('anthropic-key');
+    getApiKeyMock.mockResolvedValue('anthropic-key');
     getModelConfigsMock.mockReturnValue([{
       ...DEFAULT_MODEL_CONFIG,
       id: 'model-1',
@@ -272,7 +272,7 @@ describe('proxy handlers', () => {
   });
 
   it('Gemini proxy converts messages to Gemini contents format correctly', async () => {
-    getApiKeyMock.mockReturnValue('gemini-key');
+    getApiKeyMock.mockResolvedValue('gemini-key');
     getModelConfigsMock.mockReturnValue([{
       ...DEFAULT_MODEL_CONFIG,
       id: 'model-1',
@@ -306,12 +306,15 @@ describe('proxy handlers', () => {
         { role: 'user', parts: [{ text: 'Hello' }] },
         { role: 'model', parts: [{ text: 'Hi there' }] },
       ],
-      config: { systemInstruction: 'ignored' },
+      config: {
+        systemInstruction: 'ignored',
+        abortSignal: expect.any(AbortSignal),
+      },
     });
   });
 
   it('Gemini proxy emits SSE text chunks and DONE marker', async () => {
-    getApiKeyMock.mockReturnValue('gemini-key');
+    getApiKeyMock.mockResolvedValue('gemini-key');
     getModelConfigsMock.mockReturnValue([{
       ...DEFAULT_MODEL_CONFIG,
       id: 'model-1',
@@ -343,7 +346,7 @@ describe('proxy handlers', () => {
   });
 
   it('OpenAI proxy aborts upstream request on client disconnect', async () => {
-    getApiKeyMock.mockReturnValue('openai-key');
+    getApiKeyMock.mockResolvedValue('openai-key');
 
     let closeHandler: (() => void) | undefined;
     fetchMock.mockImplementation(async (_input, init) => {

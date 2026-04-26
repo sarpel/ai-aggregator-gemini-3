@@ -5,15 +5,7 @@
 
 language: "tr"
 early_access: true
-tone_instructions: >-
-  Write ALL review comments, walkthroughs, and inline feedback in Turkish. Keep
-  config-level instructions (this file) in English. Be blunt, thorough, and
-  technically exhaustive. Skip pleasantries, summaries, poems, cosmetic
-  nitpicks. Focus ONLY on: functional bugs, runtime correctness, performance
-  bottlenecks, data corruption risks, resource leaks, and algorithmic errors.
-  For every finding, provide: (1) what is wrong, (2) why it breaks or slows
-  things, (3) the exact fix as code. Teach — explain the reasoning so the author
-  learns. If nothing is wrong, stay silent. No filler, no fluff.
+tone_instructions: "Blunt, technical, exhaustive. Turkish feedback, English config. Focus: functional bugs, runtime correctness, performance, data corruption, resource leaks. Provide: what's wrong, why it breaks, exact fix as code."
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Knowledge base
@@ -27,10 +19,8 @@ knowledge_base:
       - "**/.cursorrules"
   web_search:
     enabled: true
-  learn:
-    enabled: true
-    repo:
-      enabled: true
+  learnings:
+    scope: auto
   mcp:
     usage: enabled
 
@@ -90,6 +80,31 @@ reviews:
 
   # ── Path-specific review instructions ──────────────────────────────────────
   path_instructions:
+    # ── TypeScript & TSX: application correctness ───────────────────────────
+    - path: "**/*.ts"
+      instructions: |
+        Write ALL review comments, walkthroughs, and inline feedback in Turkish.
+        Keep config-level instructions (this file) in English. Be blunt,
+        thorough, and technically exhaustive. Skip pleasantries, summaries,
+        poems, cosmetic nitpicks. Focus ONLY on: functional bugs, runtime
+        correctness, performance bottlenecks, data corruption risks, resource
+        leaks, and algorithmic errors. For every finding, provide: (1) what is
+        wrong, (2) why it breaks or slows things, (3) the exact fix as code.
+        Teach — explain the reasoning so the author learns. If nothing is wrong,
+        stay silent. No filler, no fluff.
+
+    - path: "**/*.tsx"
+      instructions: |
+        Write ALL review comments, walkthroughs, and inline feedback in Turkish.
+        Keep config-level instructions (this file) in English. Be blunt,
+        thorough, and technically exhaustive. Skip pleasantries, summaries,
+        poems, cosmetic nitpicks. Focus ONLY on: functional bugs, runtime
+        correctness, performance bottlenecks, data corruption risks, resource
+        leaks, and algorithmic errors. For every finding, provide: (1) what is
+        wrong, (2) why it breaks or slows things, (3) the exact fix as code.
+        Teach — explain the reasoning so the author learns. If nothing is wrong,
+        stay silent. No filler, no fluff.
+
     # ── Core package: training & inference internals ────────────────────────
     - path: "microWakeWord/microwakeword/**/*.py"
       instructions: |

@@ -47,10 +47,42 @@ function writeSSE(res: ServerResponse, chunks: string[], delayMs = 0): Promise<v
 }
 
 function collectBody(req: IncomingMessage): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const parts: Buffer[] = [];
-    req.on('data', (chunk: Buffer) => parts.push(chunk));
-    req.on('end', () => resolve(Buffer.concat(parts).toString('utf8')));
+    let settled = false;
+
+    const cleanup = (): void => {
+      req.off('data', onData);
+      req.off('end', onEnd);
+      req.off('error', onError);
+      req.off('close', onClose);
+    };
+
+    const settle = (callback: () => void): void => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      cleanup();
+      callback();
+    };
+
+    const onData = (chunk: Buffer): void => {
+      parts.push(chunk);
+    };
+    const onEnd = (): void => settle(() => resolve(Buffer.concat(parts).toString('utf8')));
+    const onError = (err: Error): void => settle(() => reject(err));
+    const onClose = (): void => {
+      if (!req.complete) {
+        settle(() => reject(new Error('Request closed before body was fully received')));
+      }
+    };
+
+    req.on('data', onData);
+    req.on('end', onEnd);
+    req.on('error', onError);
+    req.on('close', onClose);
   });
 }
 
@@ -123,7 +155,13 @@ export function createMockLLMServer(): MockLLMServer {
     start(): Promise<string> {
       return new Promise((resolve, reject) => {
         server = createServer((req, res) => {
-          void handleRequest(req, res);
+          handleRequest(req, res).catch((err) => {
+            console.error('[MockLLMServer] Unhandled error in request handler:', err);
+            if (!res.headersSent) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+            }
+            res.end(JSON.stringify({ error: 'Internal mock server error' }));
+          });
         });
 
         server.listen(0, '127.0.0.1', () => {

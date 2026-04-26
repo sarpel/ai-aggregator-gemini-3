@@ -35,3 +35,7 @@ coverage/
 # Server runtime data (contains encrypted secrets)
 server/db.json
 
+# Server environment secrets
+server/.env
+
+pr-fix-suggestions.md

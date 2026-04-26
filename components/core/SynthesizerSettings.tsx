@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { SynthesizerConfig, AppAction, ModelConfig } from '../../types';
 import { Cpu, X, Save } from 'lucide-react';
 import CyberButton from '../ui/CyberButton';
@@ -16,6 +16,18 @@ const SynthesizerSettings: React.FC<SynthesizerSettingsProps> = ({ config, dispa
   const handleChange = (field: keyof SynthesizerConfig, value: string) => {
     dispatch({ type: 'SET_SYNTHESIZER_CONFIG', payload: { [field]: value } });
   };
+
+  useEffect(() => {
+    const firstModel = modelConfigs[0];
+    if (!firstModel) {
+      return;
+    }
+
+    const modelExists = modelConfigs.some((m) => m.id === config.modelId);
+    if (!config.modelId || !modelExists) {
+      handleChange('modelId', firstModel.id);
+    }
+  }, [modelConfigs, config.modelId]);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
@@ -38,7 +50,7 @@ const SynthesizerSettings: React.FC<SynthesizerSettingsProps> = ({ config, dispa
                  <label className="text-gray-400 font-mono text-xs font-bold uppercase tracking-widest">Synthesis Model</label>
                  <CyberTooltip content="Choose which AI model synthesizes the final answer" position="top">
                    <select
-                    value={modelConfigs.length === 0 ? '' : config.modelId}
+                    value={modelConfigs.length === 0 ? '' : (modelConfigs.some(m => m.id === config.modelId) ? config.modelId : modelConfigs[0]?.id ?? '')}
                     onChange={(e) => handleChange('modelId', e.target.value)}
                     className="w-full bg-black border border-gray-700 text-white font-mono p-2 focus:border-cyber-pink focus:outline-none"
                  >

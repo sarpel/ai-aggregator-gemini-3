@@ -34,7 +34,7 @@ describe('db', () => {
     await dbModule.initDb();
     await dbModule.setApiKey('OPENAI', 'hello');
 
-    expect(dbModule.getApiKey('OPENAI')).toBe('hello');
+    await expect(dbModule.getApiKey('OPENAI')).resolves.toBe('hello');
 
     const rawDb = JSON.parse(await readFile(dbPath, 'utf8')) as {
       keys: Record<string, { ciphertext: string; iv: string; tag: string; salt: string }>;
@@ -147,7 +147,7 @@ describe('db', () => {
     await dbModule.initDb();
     await dbModule.setApiKey('ANTHROPIC', 'sk-ant-secret');
 
-    expect(dbModule.getApiKey('ANTHROPIC')).toBe('sk-ant-secret');
+    await expect(dbModule.getApiKey('ANTHROPIC')).resolves.toBe('sk-ant-secret');
   });
 
   it('getApiKey returns null for an unknown model', async () => {
@@ -155,7 +155,7 @@ describe('db', () => {
 
     await dbModule.initDb();
 
-    expect(dbModule.getApiKey('UNKNOWN')).toBeNull();
+    await expect(dbModule.getApiKey('UNKNOWN')).resolves.toBeNull();
   });
 });
 

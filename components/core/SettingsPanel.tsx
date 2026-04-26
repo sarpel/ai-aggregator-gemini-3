@@ -113,6 +113,9 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
   };
 
   const handleDeleteCustomModel = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this model? This action cannot be undone.')) {
+      return;
+    }
     const isNew = !originalModels.find(m => m.id === id);
     if (!isNew) {
       try {
@@ -224,6 +227,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
               type="text"
               value={model.name}
               onChange={(e) => handleModelChange(model.id, 'name', e.target.value)}
+              aria-label="Model name"
               className="bg-black border border-gray-700 text-white font-mono text-xs p-1 outline-none focus:border-cyber-neon focus:shadow-[0_0_10px_rgba(0,255,255,0.3)]"
             />
           </div>
@@ -231,8 +235,9 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
             <CyberTooltip content={hasKey ? "API Key Configured" : "API Key Missing"} position="left">
               <div className={`w-2 h-2 rounded-full ${hasKey ? 'bg-green-400' : 'bg-red-500'}`}></div>
             </CyberTooltip>
+            <span className="sr-only">{hasKey ? "API Key configured" : "API Key missing"}</span>
             {model.isCustom && (
-              <button type="button" onClick={() => handleDeleteCustomModel(model.id)} className="text-gray-500 hover:text-cyber-red transition-colors">
+              <button type="button" onClick={() => handleDeleteCustomModel(model.id)} aria-label="Delete model" className="text-gray-500 hover:text-cyber-red transition-colors">
                 <Trash2 size={14} />
               </button>
             )}
@@ -251,6 +256,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
                   name={`apiStyle-${model.id}`}
                   checked={model.apiStyle === 'OPENAI'}
                   onChange={() => handleModelChange(model.id, 'apiStyle', 'OPENAI')}
+                  aria-label="OpenAI Compatible"
                   className="accent-cyber-pink"
                 />
                 <span className="text-sm font-mono text-gray-300">OpenAI Compatible</span>
@@ -261,6 +267,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
                   name={`apiStyle-${model.id}`}
                   checked={model.apiStyle === 'ANTHROPIC'}
                   onChange={() => handleModelChange(model.id, 'apiStyle', 'ANTHROPIC')}
+                  aria-label="Anthropic"
                   className="accent-cyber-pink"
                 />
                 <span className="text-sm font-mono text-gray-300">Anthropic</span>
@@ -271,6 +278,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
                   name={`apiStyle-${model.id}`}
                   checked={model.apiStyle === 'GEMINI'}
                   onChange={() => handleModelChange(model.id, 'apiStyle', 'GEMINI')}
+                  aria-label="Gemini"
                   className="accent-cyber-pink"
                 />
                 <span className="text-sm font-mono text-gray-300">Gemini</span>
@@ -287,6 +295,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
                 value={model.endpoint || ''}
                 onChange={(e) => handleModelChange(model.id, 'endpoint', e.target.value)}
                 placeholder="https://api..."
+                aria-label="Endpoint URL"
                 className="w-full bg-transparent text-white font-mono text-xs p-2 outline-none"
               />
             </div>
@@ -299,6 +308,7 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
               value={model.modelName || ''}
               onChange={(e) => handleModelChange(model.id, 'modelName', e.target.value)}
               placeholder="model-name"
+              aria-label="Model ID / Display Name"
               className="w-full bg-black border border-gray-700 text-white font-mono text-xs p-2 outline-none focus:border-cyber-neon focus:shadow-[0_0_10px_rgba(0,255,255,0.3)]"
             />
           </div>
@@ -312,11 +322,13 @@ const SettingsPanel: FC<SettingsPanelProps> = ({ dispatch, onClose }) => {
                 value={apiKeys[model.id] || ''}
                 onChange={(e) => handleKeyChange(model.id, e.target.value)}
                 placeholder={keyStatuses[model.id] ? "Stored securely — enter new key to replace" : "Enter API Key"}
+                aria-label="API Key"
                 className="w-full bg-black border border-gray-700 text-white font-mono text-xs py-2 pl-10 pr-10 outline-none focus:border-cyber-neon focus:shadow-[0_0_10px_rgba(0,255,255,0.3)]"
               />
               <button
                 type="button"
                 onClick={() => toggleShowKey(model.id)}
+                aria-label={showKeys[model.id] ? "Hide API key" : "Show API key"}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
               >
                 {showKeys[model.id] ? <EyeOff size={14} /> : <Eye size={14} />}

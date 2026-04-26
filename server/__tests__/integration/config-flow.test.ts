@@ -1,10 +1,10 @@
 import { mkdtemp, rm } from 'node:fs/promises';
-import { createServer, type Server } from 'node:http';
+import { type Server } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import cors from 'cors';
 import express from 'express';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 type DbModule = typeof import('../../db');
 
@@ -19,7 +19,7 @@ describe('config-flow integration', () => {
     dbPath = join(tempDir, 'db.json');
 
     process.env.DB_PATH = dbPath;
-    process.env.ENCRYPTION_KEY = 'integration-test-key-32chars!!';
+    process.env.ENCRYPTION_KEY = '01234567890123456789012345678932';
 
     vi.resetModules();
 
@@ -244,7 +244,7 @@ describe('config-flow integration', () => {
     });
 
     // Read key directly from DB module
-    const key = dbModule.getApiKey('ANTHROPIC');
+    const key = await dbModule.getApiKey('ANTHROPIC');
     expect(key).toBe('sk-ant-encrypted-roundtrip');
   });
 });

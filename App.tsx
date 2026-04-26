@@ -258,9 +258,11 @@ export default function App() {
           dispatch({ type: 'UPDATE_CONSENSUS', payload: { text: fullText } });
         },
         onComplete: () => {
+          // TODO: Derive confidence from synthesis quality metrics (e.g. response length, model agreement)
+          const confidence = fullText.length > 0 ? 1 : 0;
           dispatch({
             type: 'UPDATE_CONSENSUS',
-            payload: { status: ConsensusStatus.COMPLETED, confidence: 0.95 },
+            payload: { status: ConsensusStatus.COMPLETED, confidence },
           });
           dispatch({ type: 'ADD_HISTORY', payload: { prompt: state.currentPrompt, consensus: fullText } });
         },

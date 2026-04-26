@@ -73,7 +73,7 @@ export async function handleOpenAIProxy(
 ): Promise<void> {
   let apiKey: string | null;
   try {
-    apiKey = getApiKey(req.body.modelId);
+    apiKey = await getApiKey(req.body.modelId);
   } catch {
     res.status(500).json({ error: 'Failed to retrieve API key' });
     return;
@@ -172,7 +172,7 @@ export async function handleAnthropicProxy(
 ): Promise<void> {
   let apiKey: string | null;
   try {
-    apiKey = getApiKey(req.body.modelId);
+    apiKey = await getApiKey(req.body.modelId);
   } catch {
     res.status(500).json({ error: 'Failed to retrieve API key' });
     return;
@@ -224,7 +224,7 @@ export async function handleAnthropicProxy(
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify(upstreamBody),
-      signal: req.socket.destroyed ? AbortSignal.abort() : controller.signal,
+      signal: req.socket?.destroyed ? AbortSignal.abort() : controller.signal,
     });
 
     clearTimeout(timeoutId);
@@ -271,7 +271,7 @@ export async function handleGeminiProxy(
 ): Promise<void> {
   let apiKey: string | null;
   try {
-    apiKey = getApiKey(req.body.modelId);
+    apiKey = await getApiKey(req.body.modelId);
   } catch {
     res.status(500).json({ error: 'Failed to retrieve API key' });
     return;
@@ -288,6 +288,34 @@ export async function handleGeminiProxy(
     return;
   }
 
+  let isClosed = req.socket?.destroyed ?? false;
+  let responseIterator: AsyncGenerator<GenerateContentResponse> | null = null;
+  const controller = new AbortController();
+  let timedOut = false;
+  let timeoutReject: ((error: Error) => void) | null = null;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutReject = reject;
+  });
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    console.warn(`[PROXY/GEMINI] Upstream timeout for ${req.body.modelId}`);
+    const timeoutError = new Error('Request timed out');
+    timeoutError.name = 'AbortError';
+    timeoutReject?.(timeoutError);
+    controller.abort();
+    if (responseIterator && typeof responseIterator.return === 'function') {
+      void responseIterator.return(undefined);
+    }
+  }, 60_000);
+  abortUpstreamOnPrematureResponseClose(res, req.body.modelId, () => {
+    clearTimeout(timeoutId);
+    isClosed = true;
+    controller.abort();
+    if (responseIterator && typeof responseIterator.return === 'function') {
+      void responseIterator.return(undefined);
+    }
+  });
+
   const ai = new GoogleGenAI({ apiKey });
   const systemPrompt = req.body.systemPrompt;
   const systemMessageText = req.body.messages
@@ -303,28 +331,23 @@ export async function handleGeminiProxy(
     }));
 
   const systemInstruction = systemPrompt || systemMessageText || undefined;
-  const config = systemInstruction ? { systemInstruction } : undefined;
+  const config = {
+    ...(systemInstruction ? { systemInstruction } : {}),
+    abortSignal: controller.signal,
+  };
 
   setSseHeaders(res);
 
-  let isClosed = req.socket.destroyed;
-  let responseIterator: AsyncGenerator<GenerateContentResponse> | null = null;
-
-  abortUpstreamOnPrematureResponseClose(res, req.body.modelId, () => {
-    console.log(`[PROXY/GEMINI] Client disconnected for ${req.body.modelId}`);
-    isClosed = true;
-    if (responseIterator && typeof responseIterator.return === 'function') {
-      void responseIterator.return(undefined);
-    }
-  });
-
   try {
     console.log(`[PROXY/GEMINI] Streaming ${modelConfig.modelName}`);
-    const responseStream = await ai.models.generateContentStream({
-      model: modelConfig.modelName,
-      contents,
-      ...(config ? { config } : {}),
-    });
+    const responseStream = await Promise.race([
+      ai.models.generateContentStream({
+        model: modelConfig.modelName,
+        contents,
+        config,
+      }),
+      timeoutPromise,
+    ]);
     responseIterator = responseStream;
 
     for await (const chunk of responseIterator) {
@@ -337,13 +360,23 @@ export async function handleGeminiProxy(
     }
 
     if (!isClosed) {
+      if (timedOut) {
+        writeSseError(res, 'Request timed out');
+        return;
+      }
+
       console.log(`[PROXY/GEMINI] Stream complete for ${req.body.modelId}`);
+      clearTimeout(timeoutId);
       res.write('data: [DONE]\n\n');
       res.end();
     }
   } catch (error) {
+    clearTimeout(timeoutId);
     if (error instanceof Error && error.name === 'AbortError') {
       console.log(`[PROXY/GEMINI] Request aborted for ${req.body.modelId}`);
+      if (timedOut && !res.writableEnded) {
+        writeSseError(res, 'Request timed out');
+      }
     } else {
       console.error(`[PROXY/GEMINI] Error for ${req.body.modelId}:`, error);
     }
@@ -351,5 +384,7 @@ export async function handleGeminiProxy(
       const message = error instanceof Error ? error.message : 'Unknown proxy error';
       writeSseError(res, message);
     }
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

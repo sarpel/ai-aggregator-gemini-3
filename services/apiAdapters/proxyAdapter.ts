@@ -36,6 +36,13 @@ const extractChunkText = (apiStyle: ApiStyle, payload: unknown): string => {
         content?: unknown;
       };
     }>;
+    candidates?: Array<{
+      content?: {
+        parts?: Array<{
+          text?: unknown;
+        }>;
+      };
+    }>;
   };
 
   if (typeof eventPayload.error === 'string') {
@@ -52,6 +59,14 @@ const extractChunkText = (apiStyle: ApiStyle, payload: unknown): string => {
     return eventPayload.type === 'content_block_delta' && typeof eventPayload.delta?.text === 'string'
       ? eventPayload.delta.text
       : '';
+  }
+
+  if (apiStyle === 'GEMINI') {
+    const text = eventPayload.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (typeof text === 'string') {
+      return text;
+    }
+    return typeof eventPayload.text === 'string' ? eventPayload.text : '';
   }
 
   return typeof eventPayload.text === 'string' ? eventPayload.text : '';

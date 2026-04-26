@@ -21,7 +21,6 @@ const MAX_PREVIEW_LENGTH = 220;
 
 function createModelPreview(
 	response: ModelResponse | undefined,
-	status: ModelStatus,
 	isError: boolean,
 ): string {
 	if (!response) {
@@ -146,7 +145,7 @@ const ModelCard: React.FC<ModelCardProps> = React.memo(
 								maskImage: "linear-gradient(to bottom, transparent, black 20%)",
 							}}
 						>
-							{createModelPreview(response, status, isError)}
+							{createModelPreview(response, isError)}
 							{status === ModelStatus.STREAMING && (
 								<span className="inline-block w-1.5 h-3 bg-cyber-neon align-middle animate-pulse ml-0.5 shadow-[0_0_5px_#00f3ff]"></span>
 							)}

@@ -1,5 +1,5 @@
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { createCipheriv, createDecipheriv, randomBytes, scrypt } from 'node:crypto';
+import { mkdir, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { Low } from 'lowdb';
 import { JSONFile } from 'lowdb/node';
@@ -39,6 +39,19 @@ const DEFAULT_MODELS: ModelConfigStored[] = [
 
 let db: Low<DbSchema>;
 
+function deriveKey(salt: Buffer): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    scrypt(getMasterKey(), salt, 32, (error, derivedKey) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve(derivedKey);
+    });
+  });
+}
+
 function getDbPath(): string {
   return process.env.DB_PATH ?? 'db.json';
 }
@@ -59,6 +72,7 @@ async function ensureEncryptionKey(): Promise<string> {
 
   const dbDir = dirname(getDbPath());
   const envPath = join(dbDir, '.env');
+  const lockPath = envPath + '.lock';
 
   // Try reading existing .env
   try {
@@ -72,26 +86,79 @@ async function ensureEncryptionKey(): Promise<string> {
     // .env doesn't exist yet, will create below
   }
 
-  // Generate and persist a new key
-  const newKey = randomBytes(32).toString('hex');
-  const line = `ENCRYPTION_KEY=${newKey}\n`;
-  try {
-    let envContent = '';
+  // Acquire lock with retries
+  let lockFd: import('node:fs').promises.FileHandle | null = null;
+  const maxRetries = 5;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      envContent = await readFile(envPath, 'utf8');
-      // Remove any existing empty/placeholder ENCRYPTION_KEY line
-      envContent = envContent.replace(/^ENCRYPTION_KEY\s*=\s*.*$/m, '').trim();
-      if (envContent) envContent += '\n';
+      const fs = await import('node:fs/promises');
+      lockFd = await fs.open(lockPath, 'wx');
+      break;
     } catch {
-      // no existing file
+      if (attempt < maxRetries - 1) {
+        await new Promise((r) => setTimeout(r, 100));
+      } else {
+        throw new Error(
+          `Failed to acquire lock file ${lockPath} after ${maxRetries} attempts. ` +
+            'Another process may be generating the encryption key.',
+        );
+      }
     }
-    await writeFile(envPath, envContent + line, 'utf8');
-  } catch {
-    // Can't persist — that's OK, key works for this session
   }
 
-  process.env.ENCRYPTION_KEY = newKey;
-  return newKey;
+  try {
+    // Re-read .env after acquiring lock (another process may have written it)
+    try {
+      const envContent = await readFile(envPath, 'utf8');
+      const match = envContent.match(/^ENCRYPTION_KEY\s*=\s*['"]?([^'"\n\r]+)['"]?\s*$/m);
+      if (match?.[1]) {
+        process.env.ENCRYPTION_KEY = match[1];
+        return match[1];
+      }
+    } catch {
+      // still doesn't exist
+    }
+
+    // Generate and persist a new key via temp file for atomic replace
+    const newKey = randomBytes(32).toString('hex');
+    const line = `ENCRYPTION_KEY=${newKey}\n`;
+    const tmpPath = envPath + '.tmp';
+
+    try {
+      let envContent = '';
+      try {
+        envContent = await readFile(envPath, 'utf8');
+        envContent = envContent.replace(/^ENCRYPTION_KEY\s*=\s*.*$/m, '').trim();
+        if (envContent) envContent += '\n';
+      } catch {
+        // no existing file
+      }
+
+      const fs = await import('node:fs/promises');
+      await fs.writeFile(tmpPath, envContent + line, 'utf8');
+      await fs.rename(tmpPath, envPath);
+    } catch (writeError) {
+      const message = `Failed to persist ENCRYPTION_KEY to ${envPath}. ` +
+        'Set ENCRYPTION_KEY explicitly before starting the server.';
+      console.error(
+        `[ensureEncryptionKey] ${message}`,
+        writeError instanceof Error ? writeError.message : String(writeError),
+      );
+      throw new Error(message);
+    }
+
+    process.env.ENCRYPTION_KEY = newKey;
+    return newKey;
+  } finally {
+    // Release lock
+    try {
+      if (lockFd) await lockFd.close();
+      const fs = await import('node:fs/promises');
+      await fs.unlink(lockPath).catch(() => {});
+    } catch {
+      // best-effort cleanup
+    }
+  }
 }
 
 function ensureDb(): Low<DbSchema> {
@@ -110,10 +177,10 @@ async function persistDb(database: Low<DbSchema>): Promise<void> {
   await database.write();
 }
 
-function encrypt(plaintext: string): EncryptedKey {
+async function encrypt(plaintext: string): Promise<EncryptedKey> {
   const salt = randomBytes(32);
   const iv = randomBytes(12);
-  const derivedKey = scryptSync(getMasterKey(), salt, 32);
+  const derivedKey = await deriveKey(salt);
   const cipher = createCipheriv('aes-256-gcm', derivedKey, iv);
   const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
   const tag = cipher.getAuthTag();
@@ -126,17 +193,25 @@ function encrypt(plaintext: string): EncryptedKey {
   };
 }
 
-function decrypt(enc: EncryptedKey): string {
-  const derivedKey = scryptSync(getMasterKey(), Buffer.from(enc.salt, 'hex'), 32);
-  const decipher = createDecipheriv('aes-256-gcm', derivedKey, Buffer.from(enc.iv, 'hex'));
-  decipher.setAuthTag(Buffer.from(enc.tag, 'hex'));
+async function decrypt(enc: EncryptedKey): Promise<string> {
+  try {
+    const derivedKey = await deriveKey(Buffer.from(enc.salt, 'hex'));
+    const decipher = createDecipheriv('aes-256-gcm', derivedKey, Buffer.from(enc.iv, 'hex'));
+    decipher.setAuthTag(Buffer.from(enc.tag, 'hex'));
 
-  const plaintext = Buffer.concat([
-    decipher.update(Buffer.from(enc.ciphertext, 'hex')),
-    decipher.final(),
-  ]);
+    const plaintext = Buffer.concat([
+      decipher.update(Buffer.from(enc.ciphertext, 'hex')),
+      decipher.final(),
+    ]);
 
-  return plaintext.toString('utf8');
+    return plaintext.toString('utf8');
+  } catch (error) {
+    throw new Error(
+      `Failed to decrypt data: invalid key or corrupted ciphertext. ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
 }
 
 export async function initDb(): Promise<void> {
@@ -192,13 +267,13 @@ export async function deleteModelConfig(id: string): Promise<void> {
   await persistDb(database);
 }
 
-export function getApiKey(modelId: string): string | null {
+export async function getApiKey(modelId: string): Promise<string | null> {
   const encryptedKey = ensureDb().data.keys[modelId];
-  return encryptedKey ? decrypt(encryptedKey) : null;
+  return encryptedKey ? await decrypt(encryptedKey) : null;
 }
 
 export async function setApiKey(modelId: string, key: string): Promise<void> {
   const database = ensureDb();
-  database.data.keys[modelId] = encrypt(key);
+  database.data.keys[modelId] = await encrypt(key);
   await persistDb(database);
 }

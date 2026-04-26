@@ -45,7 +45,7 @@ describe('SettingsPanel', () => {
         });
       }
       if (requestOptions && requestOptions.method === 'PUT') {
-        return Promise.resolve({ ok: true });
+        return Promise.resolve({ ok: true, json: async () => ({}) });
       }
       return Promise.reject(new Error('Not mocked'));
     });

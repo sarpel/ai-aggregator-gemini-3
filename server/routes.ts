@@ -273,7 +273,7 @@ router.get('/models/:id/key/status', async (req: Request, res: Response) => {
   }
 
   try {
-    const key = getApiKey(routeId);
+    const key = await getApiKey(routeId);
     return res.status(200).json({ hasKey: key !== null });
   } catch (err) {
     console.error(`[GET /models/${routeId}/key/status] Error:`, err);

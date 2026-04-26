@@ -192,7 +192,7 @@ export const ModelDetailsModal: React.FC<ModelDetailsModalProps> = ({
 									Error Diagnostics
 								</h4>
 								<p className="text-xs text-red-200 font-mono break-all">
-									{response.error}
+									{response.error ?? "No error message provided"}
 								</p>
 							</div>
 						</div>

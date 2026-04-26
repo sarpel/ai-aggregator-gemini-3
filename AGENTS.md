@@ -16,7 +16,7 @@ NeuroSync is a cyberpunk-themed AI aggregator that queries multiple LLMs in para
 | Build Tool | Vite | 6.2.0 |
 | Language | TypeScript | 5.8.2 |
 | Styling | Tailwind CSS | Custom cyberpunk theme |
-| Backend | Express | 4.18.2 |
+| Backend | Express | 4.22.1 |
 | Database | lowdb | 7.0.1 (JSON file) |
 | Testing | Vitest | 4.1.4 |
 | AI SDK | @google/genai | 1.49.0 |
@@ -76,7 +76,7 @@ User Input → App.tsx → proxyAdapter.ts → POST /api/proxy/{style}
 ## Code Conventions
 
 ### TypeScript
-- Strict mode not enabled (strict mode is enabled in the server)
+- Frontend: strict mode disabled; Backend (server): strict mode enabled
 - No `any` types in production code
 - Explicit return types on exported functions
 - Interface naming: `PascalCase`

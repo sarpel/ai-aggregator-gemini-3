@@ -4,12 +4,10 @@ import {
 	AlertTriangle,
 	Clock,
 	Database,
-	Globe,
-	Hash,
-	Terminal,
 	X,
 	Zap,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { type ModelConfig, type ModelResponse, ModelStatus } from "../../types";
 import CyberButton from "../ui/CyberButton";
 import ModelAvatar from "../ui/ModelAvatar";
@@ -88,101 +86,70 @@ export const ModelDetailsModal: React.FC<ModelDetailsModalProps> = ({
 				</div>
 
 				<div className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
-					{/* Description */}
-					<div className="bg-cyber-gray/10 p-4 rounded border border-gray-800">
-						<p className="text-gray-300 text-sm italic">
-							"{model.description}"
-						</p>
+
+{/* Live Performance Stats */}
+<div className="space-y-2">
+<div className="text-[10px] font-mono text-gray-500 uppercase flex items-center gap-1 border-b border-gray-800 pb-1 mb-2">
+<Activity size={10} /> Live Telemetry
+</div>
+<div className="grid grid-cols-3 gap-2">
+<div className="bg-black/50 p-3 rounded border border-gray-800 flex flex-col items-center justify-center gap-1">
+<Clock size={16} className="text-cyber-pink" />
+<span className="text-[10px] text-gray-500 uppercase">
+Latency
+</span>
+<span className="text-lg font-mono font-bold text-white">
+{(response.latency / 1000).toFixed(2)}s
+</span>
+</div>
+<div className="bg-black/50 p-3 rounded border border-gray-800 flex flex-col items-center justify-center gap-1">
+<Database size={16} className="text-cyber-yellow" />
+<span className="text-[10px] text-gray-500 uppercase">
+Est. Tokens
+</span>
+<span className="text-lg font-mono font-bold text-white">
+{response.tokenCount || 0}
+</span>
+</div>
+<div className="bg-black/50 p-3 rounded border border-gray-800 flex flex-col items-center justify-center gap-1">
+<Zap
+size={16}
+className={
+response.status === ModelStatus.STREAMING
+? "text-cyber-neon"
+: "text-gray-600"
+}
+/>
+<span className="text-[10px] text-gray-500 uppercase">
+Throughput
+</span>
+<span className="text-lg font-mono font-bold text-white">
+{response.latency > 0 && response.tokenCount
+? (response.tokenCount / (response.latency / 1000)).toFixed(
+0,
+)
+: 0}{" "}
+T/s
+</span>
+</div>
+</div>
 					</div>
 
-					{/* Technical Specs Grid */}
-					<div className="grid grid-cols-2 gap-4">
-						<div className="space-y-1">
-							<div className="text-[10px] font-mono text-gray-500 uppercase flex items-center gap-1">
-								<Hash size={10} /> Technical Model Name
+					{/* Response Content */}
+					<div className="bg-black/40 border border-gray-800 p-4 rounded min-h-[150px]">
+						{response.error ? (
+							<div className="text-red-400 font-mono whitespace-pre-wrap break-words">
+								{response.error}
 							</div>
-							<div
-								className="font-mono text-xs text-cyber-neon bg-black p-2 border border-gray-800 rounded truncate"
-								title={model.modelName}
-							>
-								{model.modelName}
+						) : response.status === ModelStatus.STREAMING ? (
+							<pre className="whitespace-pre-wrap break-words text-sm font-mono text-gray-200 leading-relaxed max-w-full overflow-x-hidden">
+								{response.text}
+							</pre>
+						) : (
+							<div className="prose prose-invert max-w-none prose-p:text-sm prose-p:leading-7 prose-p:break-words prose-li:break-words prose-pre:bg-black prose-pre:border prose-pre:border-cyber-gray prose-pre:whitespace-pre-wrap prose-pre:break-words prose-code:break-words overflow-x-hidden">
+								<ReactMarkdown>{response.text}</ReactMarkdown>
 							</div>
-						</div>
-
-						<div className="space-y-1">
-							<div className="text-[10px] font-mono text-gray-500 uppercase flex items-center gap-1">
-								<Terminal size={10} /> API Protocol
-							</div>
-							<div className="font-mono text-xs text-white bg-black p-2 border border-gray-800 rounded flex items-center gap-2">
-								{model.apiStyle === "OPENAI" && (
-									<span className="w-2 h-2 bg-green-500 rounded-full"></span>
-								)}
-								{model.apiStyle === "ANTHROPIC" && (
-									<span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-								)}
-								{model.apiStyle === "GEMINI" && (
-									<span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-								)}
-								{model.apiStyle}
-							</div>
-						</div>
-
-						<div className="col-span-2 space-y-1">
-							<div className="text-[10px] font-mono text-gray-500 uppercase flex items-center gap-1">
-								<Globe size={10} /> Endpoint URL
-							</div>
-							<div className="font-mono text-[10px] text-gray-400 bg-black p-2 border border-gray-800 rounded truncate">
-								{model.endpoint || "(Native / SDK Integration)"}
-							</div>
-						</div>
-					</div>
-
-					{/* Live Performance Stats */}
-					<div className="space-y-2">
-						<div className="text-[10px] font-mono text-gray-500 uppercase flex items-center gap-1 border-b border-gray-800 pb-1 mb-2">
-							<Activity size={10} /> Live Telemetry
-						</div>
-						<div className="grid grid-cols-3 gap-2">
-							<div className="bg-black/50 p-3 rounded border border-gray-800 flex flex-col items-center justify-center gap-1">
-								<Clock size={16} className="text-cyber-pink" />
-								<span className="text-[10px] text-gray-500 uppercase">
-									Latency
-								</span>
-								<span className="text-lg font-mono font-bold text-white">
-									{(response.latency / 1000).toFixed(2)}s
-								</span>
-							</div>
-							<div className="bg-black/50 p-3 rounded border border-gray-800 flex flex-col items-center justify-center gap-1">
-								<Database size={16} className="text-cyber-yellow" />
-								<span className="text-[10px] text-gray-500 uppercase">
-									Est. Tokens
-								</span>
-								<span className="text-lg font-mono font-bold text-white">
-									{response.tokenCount || 0}
-								</span>
-							</div>
-							<div className="bg-black/50 p-3 rounded border border-gray-800 flex flex-col items-center justify-center gap-1">
-								<Zap
-									size={16}
-									className={
-										response.status === ModelStatus.STREAMING
-											? "text-cyber-neon"
-											: "text-gray-600"
-									}
-								/>
-								<span className="text-[10px] text-gray-500 uppercase">
-									Throughput
-								</span>
-								<span className="text-lg font-mono font-bold text-white">
-									{response.latency > 0 && response.tokenCount
-										? (response.tokenCount / (response.latency / 1000)).toFixed(
-												0,
-											)
-										: 0}{" "}
-									T/s
-								</span>
-							</div>
-						</div>
+						)}
 					</div>
 
 					{isError && (

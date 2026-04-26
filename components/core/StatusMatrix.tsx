@@ -2,7 +2,7 @@ import React, { useCallback, useState } from "react";
 import { DEFAULT_MODELS } from "../../config";
 import { type ModelConfig, type ModelResponse, ModelStatus } from "../../types";
 import ModelAvatar from "../ui/ModelAvatar";
-import ModelDetailsModal from "./ModelDetailsModal";
+import ReactMarkdown from "react-markdown";
 
 interface StatusMatrixProps {
 	activeModels: string[];
@@ -111,17 +111,19 @@ const ModelCard: React.FC<ModelCardProps> = React.memo(
 						>
 							{model.name}
 						</span>
-						<span
-							className={`text-[10px] font-mono truncate uppercase flex items-center gap-1 ${
-								isError ? "text-red-500" : "text-gray-400"
-							}`}
-						>
-							{status}
-							{status === ModelStatus.STREAMING && (
-								<span className="block w-1 h-1 bg-cyber-neon rounded-full animate-ping" />
-							)}
-						</span>
-					</div>
+{isActive && (
+<span
+className={`text-[10px] font-mono truncate uppercase flex items-center gap-1 ${
+isError ? "text-red-500" : "text-gray-400"
+}`}
+>
+{status}
+{status === ModelStatus.STREAMING && (
+<span className="block w-1 h-1 bg-cyber-neon rounded-full animate-ping" />
+)}
+</span>
+)}
+				</div>
 				</div>
 
 				{/* Mini Terminal "TV" Effect */}
@@ -228,11 +230,80 @@ const StatusMatrix: React.FC<StatusMatrixProps> = ({
 			</div>
 
 			{selectedModelId && selectedModelConfig && selectedModelResponse && (
-				<ModelDetailsModal
-					model={selectedModelConfig}
-					response={selectedModelResponse}
-					onClose={() => setSelectedModelId(null)}
-				/>
+				<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-fadeIn">
+					<div
+						className="w-full max-w-3xl bg-[#050505] border shadow-[0_0_50px_rgba(0,0,0,0.8)] rounded-sm relative overflow-hidden flex flex-col max-h-[90vh]"
+						style={{
+							borderColor: selectedModelConfig.avatarColor,
+							boxShadow: `0 0 30px ${selectedModelConfig.avatarColor}20`,
+						}}
+					>
+						{/* Decorative Header Line */}
+						<div
+							className="h-1 w-full"
+							style={{ backgroundColor: selectedModelConfig.avatarColor }}
+						></div>
+
+						{/* Header */}
+						<div className="p-6 flex justify-between items-start bg-gradient-to-b from-white/5 to-transparent border-b border-gray-800">
+							<div className="flex items-center gap-4">
+								<div className="scale-125 origin-left">
+									<ModelAvatar
+										providerId={selectedModelConfig.id}
+										name={selectedModelConfig.name}
+										color={selectedModelConfig.avatarColor}
+										status={selectedModelResponse.status}
+										mini={false}
+										progress={selectedModelResponse.progress}
+									/>
+								</div>
+								<div>
+									<h2 className="text-2xl font-black tracking-tighter text-white uppercase">
+										{selectedModelConfig.name}
+									</h2>
+									<div className="flex items-center gap-2 mt-1">
+										<span
+											className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase border ${
+												selectedModelResponse.status === ModelStatus.ERROR || selectedModelResponse.status === ModelStatus.TIMEOUT
+													? "border-red-500 text-red-500 bg-red-500/10"
+													: "border-gray-700 text-gray-400"
+											}`}
+										>
+											{selectedModelResponse.status}
+										</span>
+										<span className="text-[10px] font-mono text-gray-500">
+											{(selectedModelResponse.latency / 1000).toFixed(2)}s | ~{selectedModelResponse.tokenCount || 0} TOKENS
+										</span>
+									</div>
+								</div>
+							</div>
+							<button
+								type="button"
+								aria-label="Close response details"
+								onClick={() => setSelectedModelId(null)}
+								className="text-gray-500 hover:text-white transition-colors p-1 hover:bg-white/10 rounded"
+							>
+								<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+							</button>
+						</div>
+
+						<div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+							{selectedModelResponse.error ? (
+								<div className="text-red-400 font-mono whitespace-pre-wrap break-words">
+									{selectedModelResponse.error}
+								</div>
+							) : selectedModelResponse.status === ModelStatus.STREAMING ? (
+								<pre className="whitespace-pre-wrap break-words text-sm font-mono text-gray-200 leading-relaxed max-w-full overflow-x-hidden">
+									{selectedModelResponse.text}
+								</pre>
+							) : (
+								<div className="prose prose-invert max-w-none prose-p:text-sm prose-p:leading-7 prose-p:break-words prose-li:break-words prose-pre:bg-black prose-pre:border prose-pre:border-cyber-gray prose-pre:whitespace-pre-wrap prose-pre:break-words prose-code:break-words overflow-x-hidden">
+									<ReactMarkdown>{selectedModelResponse.text}</ReactMarkdown>
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
 			)}
 		</>
 	);

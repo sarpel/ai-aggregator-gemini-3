@@ -5,7 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:server": "cd server && npm run dev",
+    "dev:all": "npm run dev:server & sleep 2 && npm run dev",
     "build": "vite build",
+    "build:server": "cd server && npm run build",
+    "build:all": "npm run build:server && npm run build",
+    "start:server": "cd server && npm run start",
+    "start:prod": "npm run start:server & npm run preview",
     "preview": "vite preview",
     "test": "vitest run --config vitest.config.ts && cd server && npm run test",
     "test:watch": "vitest --config vitest.config.ts",

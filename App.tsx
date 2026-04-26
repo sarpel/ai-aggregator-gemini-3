@@ -70,7 +70,7 @@ function reducer(state: AppState, action: AppAction): AppState {
         modelConfigs: normalizedConfigs,
         configLoaded: true,
         responses,
-        activeModels: normalizedConfigs.map((config) => config.id),
+        activeModels: (() => { const saved = localStorage.getItem('activeModels'); const savedIds = saved ? (JSON.parse(saved) as string[]) : null; const allIds = normalizedConfigs.map((config) => config.id); return savedIds ? allIds.filter((id) => savedIds.includes(id)) : allIds; })(),
       };
     }
     case 'ADD_MODEL_CONFIG': {
@@ -81,7 +81,7 @@ function reducer(state: AppState, action: AppAction): AppState {
           ...state.responses,
           [action.config.id]: INITIAL_RESPONSE_STATE(action.config.id),
         },
-        activeModels: [...state.activeModels, action.config.id],
+        activeModels: (() => { const next = [...state.activeModels, action.config.id]; localStorage.setItem('activeModels', JSON.stringify(next)); return next; })(),
       };
     }
     case 'UPDATE_MODEL_CONFIG': {
@@ -107,16 +107,20 @@ function reducer(state: AppState, action: AppAction): AppState {
         ...state,
         modelConfigs: nextModelConfigs,
         responses: nextResponses,
-        activeModels: state.activeModels.filter((modelId) => modelId !== action.id),
+        activeModels: (() => { const next = state.activeModels.filter((modelId) => modelId !== action.id); localStorage.setItem('activeModels', JSON.stringify(next)); return next; })(),
         synthesizerConfig: nextSynthesizerConfig,
       };
     }
     case 'TOGGLE_MODEL':
       return {
         ...state,
-        activeModels: state.activeModels.includes(action.modelId)
-          ? state.activeModels.filter((id) => id !== action.modelId)
-          : [...state.activeModels, action.modelId],
+        activeModels: (() => {
+          const next = state.activeModels.includes(action.modelId)
+            ? state.activeModels.filter((id) => id !== action.modelId)
+            : [...state.activeModels, action.modelId];
+          localStorage.setItem('activeModels', JSON.stringify(next));
+          return next;
+        })(),
       };
     case 'START_REQUEST': {
       const resetResponses = { ...state.responses };
@@ -503,23 +507,23 @@ export default function App() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2 justify-center">
+          <div className="flex flex-wrap gap-2 justify-center md:justify-end">
             {availableModels.map((config) => (
               <CyberTooltip key={config.id} content={`Toggle ${config.name} active/inactive`} position="bottom">
                 <button
                   type="button"
                   onClick={() => dispatch({ type: 'TOGGLE_MODEL', modelId: config.id })}
-                  className={`px-3 py-1 text-[10px] font-bold font-mono uppercase border rounded-sm transition-all ${
+                  className={`px-3 py-1.5 text-[10px] font-bold font-mono uppercase border rounded-sm transition-all ${
                     state.activeModels.includes(config.id)
                       ? 'bg-cyber-gray text-white border-cyber-neon/50 shadow-[0_0_8px_rgba(0,243,255,0.2)]'
                       : 'bg-transparent text-gray-600 border-gray-800 hover:border-gray-600'
                   }`}
-                >
-                  {config.name}
-                </button>
-              </CyberTooltip>
-            ))}
-          </div>
+>
+{config.name}
+</button>
+</CyberTooltip>
+))}
+</div>
         </div>
       </header>
 
@@ -531,7 +535,7 @@ export default function App() {
         />
 
         <div className="flex-1 flex flex-col md:flex-row gap-6 min-h-[500px]">
-          <div className="flex-1 h-[60vh] md:h-auto relative">
+          <div className="flex-1 min-h-[70vh] md:min-h-[65vh] relative">
             <ResponseViewer
               responses={state.responses}
               consensus={state.consensus}

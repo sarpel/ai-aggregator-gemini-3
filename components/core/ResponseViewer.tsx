@@ -1,4 +1,4 @@
-import { Check, Copy, Cpu, Layers, RotateCcw, Settings } from "lucide-react";
+import { Check, Copy, Cpu, Layers, RotateCcw, Settings, Maximize2 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { DEFAULT_MODELS } from "../../config";
@@ -14,6 +14,7 @@ import {
 import CyberTooltip from "../ui/CyberTooltip";
 import { ModelLogo } from "../ui/ModelAvatar";
 import SynthesizerSettings from "./SynthesizerSettings";
+import ModelDetailsModal from "./ModelDetailsModal";
 
 interface ResponseViewerProps {
 	responses: Record<string, ModelResponse>;
@@ -37,8 +38,9 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 	const [selectedTab, setSelectedTab] = useState<"CONSENSUS" | string>(
 		"CONSENSUS",
 	);
-	const [copiedState, setCopiedState] = useState<string | null>(null);
+const [copiedState, setCopiedState] = useState<string | null>(null);
 	const [showSettings, setShowSettings] = useState(false);
+	const [expandedModelId, setExpandedModelId] = useState<string | null>(null);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 
 	const modelsToRender = modelConfigs ?? DEFAULT_MODELS;
@@ -151,7 +153,7 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 						<button
 							type="button"
 							onClick={() => setSelectedTab("CONSENSUS")}
-							className={`flex items-center gap-2 px-4 py-3 font-mono text-xs font-bold uppercase transition-colors whitespace-nowrap border-r border-cyber-gray ${
+							className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 font-mono text-xs font-bold uppercase transition-colors whitespace-nowrap border-r border-cyber-gray ${
 								selectedTab === "CONSENSUS"
 									? "bg-cyber-neon/10 text-cyber-neon border-b-2 border-b-cyber-neon"
 									: "text-gray-500 hover:text-gray-300"
@@ -174,7 +176,7 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 								<button
 									type="button"
 									onClick={() => setSelectedTab(model.id)}
-									className={`flex items-center gap-2 px-4 py-3 font-mono text-xs font-bold uppercase transition-colors whitespace-nowrap border-r border-cyber-gray relative ${
+									className={`flex-shrink-0 flex items-center gap-2 px-4 py-3 font-mono text-xs font-bold uppercase transition-colors whitespace-nowrap border-r border-cyber-gray relative group ${
 										selectedTab === model.id
 											? "bg-cyber-gray/30 text-white border-b-2"
 											: "text-gray-500 hover:text-gray-300"
@@ -197,6 +199,15 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 									{isStreaming && (
 										<span className="w-1.5 h-1.5 bg-cyber-neon rounded-full animate-pulse ml-1"></span>
 									)}
+									<div 
+										className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity hover:text-cyber-neon"
+										onClick={(e) => {
+											e.stopPropagation();
+											setExpandedModelId(model.id);
+										}}
+									>
+										<Maximize2 size={12} />
+									</div>
 								</button>
 							</CyberTooltip>
 						);
@@ -241,8 +252,8 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 						<div className="animate-fadeIn">
 							<div className="flex items-center justify-between mb-4">
 								<div className="flex items-center gap-3">
-									<h3 className="text-cyber-neon font-mono text-lg tracking-widest flex items-center gap-2">
-										<Layers className="text-cyber-pink" />
+									<h3 className="text-cyber-neon/50 font-mono text-xs tracking-widest flex items-center gap-2">
+										<Layers className="text-cyber-pink/50" size={12} />
 										NEURAL SYNTHESIS
 									</h3>
 									<CyberTooltip
@@ -270,7 +281,7 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 									</CyberTooltip>
 								)}
 							</div>
-							<div className="bg-black/60 border border-cyber-neon/30 p-4 md:p-6 rounded shadow-[0_0_30px_rgba(0,243,255,0.05)] min-h-[200px] max-w-full overflow-x-hidden">
+							<div className="bg-black/60 border border-cyber-neon/30 p-4 md:p-6 rounded shadow-[0_0_30px_rgba(0,243,255,0.05)] min-h-[300px] max-w-full overflow-x-hidden">
 								{debouncedContent ? (
 									renderContent(debouncedContent, consensus.status === ConsensusStatus.SYNTHESIZING)
 								) : (
@@ -425,14 +436,21 @@ const ResponseViewer: React.FC<ResponseViewerProps> = ({
 					)}
 				</div>
 			</div>
-			{showSettings && (
-				<SynthesizerSettings
-					config={synthesizerConfig}
-					dispatch={dispatch}
-					onClose={() => setShowSettings(false)}
-					modelConfigs={modelsToRender}
-				/>
-			)}
+		{showSettings && (
+			<SynthesizerSettings
+				config={synthesizerConfig}
+				dispatch={dispatch}
+				onClose={() => setShowSettings(false)}
+				modelConfigs={modelsToRender}
+			/>
+		)}
+		{expandedModelId && (
+			<ModelDetailsModal
+				model={modelsToRender.find((m) => m.id === expandedModelId)!}
+				response={responses[expandedModelId]}
+				onClose={() => setExpandedModelId(null)}
+			/>
+		)}
 		</>
 	);
 };
